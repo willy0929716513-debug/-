@@ -1,0 +1,58 @@
+name: Tennis Bot
+
+on:
+  schedule:
+    # 23:00 UTC = 07:00 TW — 歐洲下午賽前預測
+    - cron: "0 23 * * *"
+    # 10:00 UTC = 18:00 TW — 美洲日間賽前
+    - cron: "0 10 * * *"
+    # 13:00 UTC = 21:00 TW — 場中更新
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run mode: full | live"
+        required: false
+        default: "full"
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Tennis Bot (full prediction)
+        if: github.event.inputs.mode != 'live'
+        env:
+          ODDS_API_KEY:    ${{ secrets.ODDS_API_KEY }}
+          NTFY_TOPIC:      ${{ secrets.NTFY_TOPIC }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GIST_TOKEN:      ${{ secrets.GIST_TOKEN }}
+          GIST_ID:         ${{ secrets.GIST_ID }}
+        run: python tennis_bot.py
+
+      - name: Run Live Update (in-match odds monitoring)
+        if: github.event.inputs.mode == 'live'
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          NTFY_TOPIC:   ${{ secrets.NTFY_TOPIC }}
+        run: python live_update.py
+
+      - name: Commit updated picks
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/picks_latest.json
+          git diff --cached --quiet || git commit -m "chore: update tennis picks [skip ci]"
+          git push
