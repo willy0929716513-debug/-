@@ -54,6 +54,9 @@ def send_ntfy(title: str, message: str) -> None:
 def safe_get(url: str, params: dict = None):
     try:
         r = requests.get(url, params=params, timeout=15)
+        if r.status_code == 404:
+            log.debug("safe_get %s: 404 (sport inactive)", url.split("?")[0])
+            return None
         r.raise_for_status()
         return r.json()
     except Exception as e:
