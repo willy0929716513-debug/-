@@ -1,12 +1,12 @@
 {
-  "generated_at": "尚未第一次執行",
-  "date": "",
+  "generated_at": "2026-05-21 08:01 (台灣時間)",
+  "date": "2026-05-21",
   "stats": {
     "settled": 0,
     "wins": 0,
     "win_rate": 0.0,
-    "pnl": 0.0,
-    "roi": 0.0
+    "roi": 0.0,
+    "pnl": 0.0
   },
   "picks": [],
   "recent_history": [],
