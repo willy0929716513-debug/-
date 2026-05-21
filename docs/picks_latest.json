@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21 08:26 (台灣時間)",
+  "generated_at": "2026-05-21 08:49 (台灣時間)",
   "date": "2026-05-21",
   "stats": {
     "settled": 0,
@@ -49,7 +49,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.5
+      "exp_games": 41.7
     },
     "august holmgren|facundo diaz acosta": {
       "p1": "August Holmgren",
@@ -82,7 +82,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.5
+      "exp_games": 41.6
     },
     "jaime faria|lukas neumayer": {
       "p1": "Jaime Faria",
@@ -93,7 +93,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.0
+      "exp_games": 41.8
     },
     "sinja kraus|anna-lena friedsam": {
       "p1": "Sinja Kraus",
@@ -104,7 +104,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.6
+      "exp_games": 41.7
     },
     "leyre romero gormaz|sloane stephens": {
       "p1": "Leyre Romero Gormaz",
@@ -115,7 +115,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.8
+      "exp_games": 41.6
     },
     "maja chwalinska|suzan lamens": {
       "p1": "Maja Chwalinska",
@@ -137,7 +137,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.7
+      "exp_games": 41.4
     },
     "mayar sherif|greet minnen": {
       "p1": "Mayar Sherif",
@@ -148,7 +148,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.9
+      "exp_games": 41.7
     },
     "guo hanyu|sofia costoulas": {
       "p1": "Guo Hanyu",
@@ -159,7 +159,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.9
+      "exp_games": 41.7
     },
     "alina korneeva|julia riera": {
       "p1": "Alina Korneeva",
@@ -181,7 +181,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.7
+      "exp_games": 41.6
     }
   }
 }
