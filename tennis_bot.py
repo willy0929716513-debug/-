@@ -658,23 +658,29 @@ def _name_matches(csv_name: str, full_name: str) -> bool:
 
 
 def fetch_sackmann_matches(year: int = None) -> List[dict]:
-    """Download ATP + WTA match CSVs from Jeff Sackmann's GitHub."""
+    """Download ATP + WTA match CSVs from Jeff Sackmann's GitHub.
+    Fetches current year; falls back to also include previous year if < 300 rows.
+    """
     if year is None:
         year = datetime.datetime.utcnow().year
-    urls = [
-        f"https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_{year}.csv",
-        f"https://raw.githubusercontent.com/JeffSackmann/tennis_wta/master/wta_matches_{year}.csv",
-    ]
     rows: List[dict] = []
-    for url in urls:
-        try:
-            r = requests.get(url, timeout=25)
-            r.raise_for_status()
-            batch = list(csv.DictReader(io.StringIO(r.text)))
-            rows.extend(batch)
-            log.info("fetch_sackmann: %s → %d rows", url.split("/")[-1], len(batch))
-        except Exception as e:
-            log.warning("fetch_sackmann %s: %s", url, e)
+    for y in [year, year - 1]:
+        year_rows = 0
+        for tour in ("atp", "wta"):
+            url = (f"https://raw.githubusercontent.com/JeffSackmann/tennis_{tour}"
+                   f"/master/{tour}_matches_{y}.csv")
+            try:
+                r = requests.get(url, timeout=25)
+                r.raise_for_status()
+                batch = list(csv.DictReader(io.StringIO(r.text)))
+                rows.extend(batch)
+                year_rows += len(batch)
+                log.info("fetch_sackmann: %s_%d → %d rows", tour, y, len(batch))
+            except Exception as e:
+                log.warning("fetch_sackmann %s_%d: %s", tour, y, e)
+        # Only go back a year if current year has too little data
+        if y == year and year_rows >= 300:
+            break
     return rows
 
 
@@ -767,11 +773,11 @@ def load_sackmann_data() -> None:
         profile = build_player_profile(all_matches, full_name, n=20)
         if profile:
             _SACKMANN_PROFILES[key] = profile
-            if profile["svpt_won"]:
-                _RECENT_STATS[key] = {
-                    "svpt_won": profile["svpt_won"],
-                    "rtpt_won": profile["rtpt_won"] or 0.0,
-                }
+            if profile.get("svpt_won"):
+                rec: dict = {"svpt_won": profile["svpt_won"]}
+                if profile.get("rtpt_won"):
+                    rec["rtpt_won"] = profile["rtpt_won"]
+                _RECENT_STATS[key] = rec
             ok += 1
     log.info("load_sackmann_data: %d/%d players profiled", ok, len(all_players))
 
@@ -1038,7 +1044,8 @@ def generate_picks(matches: List[dict]) -> List[dict]:
         if p1_key in _INJURIES or p2_key in _INJURIES:
             continue
 
-        conf  = min(1.0, (model_p - 0.50) * 4.0 + 0.70)
+        # 0.60→0.70  0.65→0.80  0.70→0.90  0.75+→1.0
+        conf  = min(1.0, (model_p - MIN_CONF_ML) * 2.0 + 0.70)
         stake = kelly_stake(model_p, best_price, conf)
         stake = min(stake, MAX_DAILY_EXP - daily_exp)
         daily_exp += stake
