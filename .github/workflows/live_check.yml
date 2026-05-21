@@ -37,12 +37,13 @@ jobs:
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           NTFY_TOPIC:   ${{ secrets.NTFY_TOPIC }}
+          GH_TOKEN:     ${{ github.token }}
         run: |
           consecutive_empty=0
           max_empty=3
 
           while [ $consecutive_empty -lt $max_empty ]; do
-            echo "=== 偵測開始 (連續空值: $consecutive_empty/$max_empty) ==="
+            echo "=== 偵測開始 (連續空値: $consecutive_empty/$max_empty) ==="
 
             python live_update.py
             exit_code=$?
@@ -55,6 +56,14 @@ jobs:
               git diff --cached --quiet || \
                 git commit -m "chore: live scores update [skip ci]" && \
                 git push || echo "push failed, will retry next cycle"
+              # Sync to main for GitHub Pages
+              SHA=$(gh api repos/$GITHUB_REPOSITORY/contents/docs/picks_latest.json?ref=main --jq .sha 2>/dev/null || echo "")
+              [ -n "$SHA" ] && gh api repos/$GITHUB_REPOSITORY/contents/docs/picks_latest.json \
+                --method PUT \
+                -f message="chore: live scores update [skip ci]" \
+                -f "content=$(base64 -w 0 docs/picks_latest.json)" \
+                -f sha="$SHA" \
+                -f branch="main" || echo "sync to main failed"
             else
               # 無比賽 → 累計
               consecutive_empty=$((consecutive_empty + 1))
