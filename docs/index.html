@@ -343,6 +343,49 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
   background-clip:text;
 }
 
+/* ─── TABS ─── */
+.tab-bar{
+  display:flex;align-items:center;gap:4px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:4px;margin-bottom:16px;
+}
+.tab-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:7px;
+  border:none;background:transparent;color:var(--muted);
+  font-size:.82rem;font-weight:600;cursor:pointer;
+  transition:.15s;white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.live-badge{
+  background:var(--red);color:#fff;
+  font-size:.65rem;font-weight:700;
+  padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;
+}
+
+/* ─── SETTINGS TOKEN CARD ─── */
+.tk-info{
+  background:rgba(91,141,238,.07);border:1px solid rgba(91,141,238,.2);
+  border-radius:10px;padding:14px 16px;margin-bottom:14px;
+}
+.tk-info-title{font-size:.76rem;font-weight:700;color:var(--acc);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.tk-info-text{font-size:.82rem;color:var(--muted);line-height:1.6}
+.tk-steps{display:flex;flex-direction:column;gap:6px;margin-bottom:4px}
+.tk-step-link,.tk-step-hint{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:8px;
+  font-size:.83rem;line-height:1.5;
+}
+.tk-step-link{
+  background:rgba(91,141,238,.1);border:1px solid rgba(91,141,238,.25);
+  color:var(--acc);text-decoration:none;transition:.15s;
+}
+.tk-step-link:hover{background:rgba(91,141,238,.2)}
+.tk-step-hint{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.tk-step-icon{font-weight:700;font-size:.9rem;flex-shrink:0;width:20px;text-align:center}
+.tk-step-arrow{margin-left:auto;flex-shrink:0;opacity:.6}
+
 /* ─── RESPONSIVE ─── */
 @media(max-width:820px){
   .main-grid{grid-template-columns:1fr}
@@ -385,22 +428,25 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 <div class="overlay" id="overlay" style="display:none" onclick="bgClose(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <h2>⚙️ 設定 GitHub Token</h2>
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-text">前往
-        <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a><br>
-        點 <b>Generate new token (classic)</b>
+
+    <div class="tk-info">
+      <div class="tk-info-title">什麼是 Token？</div>
+      <p class="tk-info-text">用來授權網頁觸發 GitHub Actions（即「立即執行」和「場中更新」按鈕）。Token 只存在你的瀏覽器裡，不會上傳至任何伺服器。</p>
+    </div>
+
+    <div class="tk-steps">
+      <a class="tk-step-link" href="https://github.com/settings/tokens/new?scopes=workflow&description=TennisPredictor" target="_blank">
+        <span class="tk-step-icon">①</span>
+        <span>點此前往 GitHub 建立 Token<br><small>勾選 <b>workflow</b> 範圍 → Generate token</small></span>
+        <span class="tk-step-arrow">↗</span>
+      </a>
+      <div class="tk-step-hint">
+        <span class="tk-step-icon">②</span>
+        <span>複製以 <code>ghp_</code> 開頭的 token，貼到下面</span>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-text">勾選 <b>workflow</b> 權限（這樣才能觸發 Actions），<br>設定有效期後按 <b>Generate token</b></div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-text">複製以 <code>ghp_</code> 開頭的 token，<br>貼到下面儲存。Token 只存在你的瀏覽器裡，不會上傳。</div>
-    </div>
-    <div class="input-group">
+
+    <div class="input-group" style="margin-top:14px">
       <label>Personal Access Token</label>
       <input type="password" id="tk-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" />
     </div>
@@ -423,30 +469,35 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
     <div class="stat"><div class="lbl">損益</div><div class="num" id="s-pnl">—</div></div>
   </div>
 
-  <!-- LIVE PANEL (independent, scores only) -->
-  <div id="live-panel" style="display:none">
-    <div class="live-panel">
-      <div class="live-ph">
-        <div class="live-dot"></div>
-        <span class="lp-title">場中直播</span>
-        <span class="lp-count" id="live-count"></span>
-        <span class="lp-note">僅顯示即時比分，不含投注建議</span>
-      </div>
-      <div class="live-grid" id="live-list"></div>
-    </div>
-  </div>
-
   <!-- MAIN GRID -->
   <div class="main-grid">
 
-    <!-- LEFT: PICKS -->
+    <!-- LEFT: TABBED PANEL (推薦 / 場中比分) -->
     <div>
-      <div class="sec-hd">
-        <h2>📌 今日推薦</h2>
-        <div class="rule"></div>
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-picks" onclick="switchTab('picks')">📌 今日推薦</button>
+        <button class="tab-btn" id="tab-live" onclick="switchTab('live')">
+          🔴 場中比分
+          <span class="live-badge" id="live-badge" style="display:none"></span>
+        </button>
+        <div style="flex:1"></div>
         <button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄 重新整理</button>
       </div>
-      <div id="picks"><div class="empty">載入中…</div></div>
+
+      <!-- Picks tab -->
+      <div id="tab-picks-panel">
+        <div id="picks"><div class="empty">載入中…</div></div>
+      </div>
+
+      <!-- Live tab -->
+      <div id="tab-live-panel" style="display:none">
+        <div id="live-panel-inner">
+          <div class="empty" id="live-empty">目前無進行中比賽</div>
+        </div>
+        <div class="live-grid" id="live-list"></div>
+        <div id="live-updated" style="font-size:.7rem;color:var(--muted);padding:8px 0 4px;text-align:right"></div>
+      </div>
     </div>
 
     <!-- RIGHT: HISTORY SIDEBAR -->
@@ -558,6 +609,15 @@ function toast(msg, type='info'){
   el.className='toast '+type; el.textContent=msg;
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), 3200);
+}
+
+/* ── tab switching ── */
+function switchTab(tab){
+  ['picks','live'].forEach(t => {
+    q('tab-'+t).classList.toggle('active', t===tab);
+    const panel = q('tab-'+t+'-panel');
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+  });
 }
 
 /* ── manual refresh ── */
@@ -822,12 +882,15 @@ async function load(){
   setNum('s-roi', roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—', roi>0?'g':roi<0?'r':'');
   setNum('s-pnl', pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—', pnl>0?'g':pnl<0?'r':'');
 
-  /* live — real-time scoreboard */
+  /* live — real-time scoreboard in tab */
   const lives = data.live_matches || [];
-  q('live-panel').style.display = lives.length ? '' : 'none';
+  const badge = q('live-badge');
   if(lives.length){
-    q('live-count').textContent = '· '+lives.length+' 場進行中';
-    const upd = data.live_updated_at ? ' · 更新 '+data.live_updated_at.replace(' (台灣時間)','') : '';
+    badge.textContent = lives.length;
+    badge.style.display = '';
+    q('live-empty').style.display = 'none';
+    const upd = data.live_updated_at ? data.live_updated_at.replace(' (台灣時間)','') : '';
+    q('live-updated').textContent = upd ? '更新 '+upd : '';
     q('live-list').innerHTML = lives.map(m => {
       const hs = m.home_score || '';
       const as = m.away_score || '';
@@ -851,6 +914,11 @@ async function load(){
         </div>
       </div>`;
     }).join('');
+  } else {
+    badge.style.display = 'none';
+    q('live-empty').style.display = '';
+    q('live-list').innerHTML = '';
+    q('live-updated').textContent = '';
   }
 
   /* picks — grouped by day → tournament */
