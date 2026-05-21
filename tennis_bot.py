@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tennis Bot v3.0 — ATP/WTA 巡迴賽預測系統
+Tennis Bot v3.1 — ATP/WTA 巡迴賽預測系統
 9因子模型：Surface ELO 25% + Markov Chain 25% + Hold/Break 20% + Advanced Stats 30%
 附加調整：體能(年齡加權) ±10% | 場地狀態 ±5% | H2H ±5% | 搶七/關鍵分 ±7%
          雙誤懲罰 ±4% | 左手剋制 ±3% | 反拍剋制 ±2% | 室內場速(進入發球模型)
@@ -85,6 +85,51 @@ COURT_SPEED_ADJ: Dict[str, float] = {
     "queens":           +0.006,
     "eastbourne":       +0.004,
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ALTITUDE  (metres above sea level for tournament cities)
+# ─────────────────────────────────────────────────────────────────────────────
+ALTITUDE_M: Dict[str, int] = {
+    "buenos_aires": 1138, "bogota": 2600, "quito": 2850, "lima": 154,
+    "santiago": 520, "mexico_city": 2250, "guadalajara": 1566,
+    "madrid": 667, "kitzbuhel": 762, "gstaad": 1060,
+    "granada": 685, "lyon": 173, "chengdu": 506, "kunming": 1895,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TOURNAMENT COORDINATES  (lat, lon) for weather fetch
+# ─────────────────────────────────────────────────────────────────────────────
+TOURNAMENT_COORDS: Dict[str, Tuple[float, float]] = {
+    "roland_garros":    (48.847,   2.250),
+    "french_open":      (48.847,   2.250),
+    "wimbledon":        (51.434,  -0.214),
+    "us_open":          (40.750, -73.846),
+    "australian_open":  (-37.821, 144.981),
+    "indian_wells":     (33.720, -116.369),
+    "miami":            (25.683,  -80.180),
+    "monte_carlo":      (43.745,   7.427),
+    "madrid":           (40.416,  -3.703),
+    "rome":             (41.897,  12.469),
+    "barcelona":        (41.389,   2.165),
+    "halle":            (51.932,   8.660),
+    "queens":           (51.490,  -0.212),
+    "eastbourne":       (50.768,   0.280),
+    "hamburg":          (53.553,   9.992),
+    "toronto":          (43.641,  -79.382),
+    "cincinnati":       (39.104,  -84.510),
+    "beijing":          (39.906, 116.391),
+    "shanghai":         (31.225, 121.474),
+    "kitzbuhel":        (47.444,  12.391),
+    "buenos_aires":     (-34.614, -58.382),
+    "rio":              (-22.906, -43.172),
+    "bogota":           ( 4.711,  -74.072),
+    "santiago":         (-33.437, -70.650),
+    "umag":             (45.434,  13.524),
+    "bastad":           (56.430,  12.854),
+    "gstaad":           (46.474,   7.288),
+}
+
+ODDS_PREV_PATH = "docs/.odds_prev.json"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ATP PLAYER DATABASE
@@ -705,6 +750,163 @@ def ace_serve_adj(p1_key: str, p2_key: str) -> float:
     return max(-0.025, min(0.025, (a1 - a2) * 0.40))
 
 
+def altitude_adj(tournament: str, surface: str) -> float:
+    """Higher altitude → ball travels faster; especially offsets clay slowness."""
+    t = tournament.lower().replace(" ", "_").replace("-", "_")
+    for city, alt_m in ALTITUDE_M.items():
+        if city in t:
+            if alt_m < 400:
+                return 0.0
+            base = min(0.020, (alt_m - 200) / 500 * 0.005)
+            return round(base * (1.5 if surface == "clay" else 1.0), 4)
+    return 0.0
+
+
+def fetch_wind(lat: float, lon: float) -> Optional[float]:
+    """Wind speed km/h via free Open-Meteo API."""
+    try:
+        r = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={"latitude": lat, "longitude": lon,
+                    "current": "wind_speed_10m,precipitation",
+                    "wind_speed_unit": "kmh", "forecast_days": 1},
+            timeout=6,
+        )
+        r.raise_for_status()
+        cur = r.json().get("current", {})
+        return cur.get("wind_speed_10m"), cur.get("precipitation", 0.0)
+    except Exception as e:
+        log.debug("fetch_wind (%s,%s): %s", lat, lon, e)
+        return None, 0.0
+
+
+def wind_adj(tournament: str, surface: str, p1_key: str, p2_key: str) -> Tuple[float, float]:
+    """
+    Wind penalises heavy topspin/clay-court baseline play.
+    Returns (prob_adj_for_p1, wind_kmh).
+    Only applied for outdoor clay/grass.
+    """
+    if surface not in ("clay", "grass"):
+        return 0.0, 0.0
+    coords = None
+    t = tournament.lower().replace(" ", "_").replace("-", "_")
+    for name, (lat, lon) in TOURNAMENT_COORDS.items():
+        if name in t or t in name:
+            coords = (lat, lon)
+            break
+    if not coords:
+        return 0.0, 0.0
+    wind, rain = fetch_wind(*coords)
+    if wind is None or wind < 15:
+        return 0.0, wind or 0.0
+    # Aggressive servers benefit more in wind; topspin players suffer
+    a1 = _SACKMANN_PROFILES.get(p1_key, {}).get("ace_rate") or 0.06
+    a2 = _SACKMANN_PROFILES.get(p2_key, {}).get("ace_rate") or 0.06
+    factor = min(0.030, (wind - 15) * 0.0012)
+    adj = (a1 - a2) * factor * 4.0
+    return max(-0.025, min(0.025, adj)), round(wind, 1)
+
+
+def win_streak_adj(p1_key: str, p2_key: str) -> float:
+    """Recent win/loss streak as momentum signal. ±3% max."""
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
+    s1 = prof1.get("win_streak", 0)
+    s2 = prof2.get("win_streak", 0)
+
+    def bonus(s: int) -> float:
+        if s >= 5:  return 0.030
+        if s >= 4:  return 0.022
+        if s >= 3:  return 0.015
+        if s <= -4: return -0.025
+        if s <= -3: return -0.015
+        return 0.0
+
+    return max(-0.04, min(0.04, bonus(s1) - bonus(s2)))
+
+
+def load_odds_prev() -> Dict[str, dict]:
+    try:
+        with open(ODDS_PREV_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_odds_prev(odds_map: Dict[str, dict]) -> None:
+    os.makedirs("docs", exist_ok=True)
+    try:
+        snapshot = {k: {"best_home": v["best_home"], "best_away": v["best_away"]}
+                    for k, v in odds_map.items()}
+        with open(ODDS_PREV_PATH, "w") as f:
+            json.dump(snapshot, f)
+    except Exception as e:
+        log.warning("save_odds_prev: %s", e)
+
+
+def odds_move_signal(key: str, odds_info: dict,
+                     prev: Dict[str, dict]) -> Tuple[float, str]:
+    """
+    Detect significant odds movement (sharp money indicator).
+    Returns (prob_adj_for_home, label).
+    """
+    if key not in prev:
+        return 0.0, ""
+    ph = prev[key].get("best_home", odds_info["best_home"])
+    pa = prev[key].get("best_away", odds_info["best_away"])
+    ch = odds_info["best_home"]
+    ca = odds_info["best_away"]
+
+    def to_p(o: float) -> float:
+        return 1.0 / o if o > 1.0 else 0.0
+
+    shift = to_p(ch) - to_p(ph)  # positive = home shorted (steam on home)
+    if abs(shift) < 0.025:
+        return 0.0, ""
+
+    label = "steam_home" if shift > 0 else "steam_away"
+    adj   = max(-0.04, min(0.04, shift * 0.40))
+    log.info("odds_move %s: shift=%+.3f -> %s adj=%+.4f", key, shift, label, adj)
+    return adj, label
+
+
+def detect_injuries(all_matches: List[dict]) -> set:
+    """
+    Scan last 14 days for RET/W/O results to flag potentially injured players.
+    """
+    cutoff  = datetime.datetime.utcnow() - datetime.timedelta(days=14)
+    injured: set = set()
+    for row in all_matches:
+        try:
+            md = datetime.datetime.strptime(
+                str(row.get("tourney_date", "19000101")), "%Y%m%d")
+        except ValueError:
+            continue
+        if md < cutoff:
+            continue
+        score = (row.get("score") or "").upper()
+        if "RET" not in score and "W/O" not in score:
+            continue
+        loser = (row.get("loser_name") or "").lower()
+        if loser:
+            key = norm_player(loser)
+            all_db = {**ATP_STATS, **WTA_STATS}
+            if key in all_db:
+                injured.add(key)
+                log.info("auto-injury: %s (%s)", key, row.get("loser_name"))
+    return injured
+
+
+def extract_tournament(sport_key: str, game: dict) -> str:
+    """Derive a normalised tournament name from sport_key / sport_title."""
+    sk = sport_key.lower()
+    for token in ("french_open", "wimbledon", "us_open", "australian_open"):
+        if token in sk:
+            return token
+    title = game.get("sport_title", "").lower()
+    return title.replace(" ", "_").replace("-", "_")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PLAYER LOOKUP
 # ─────────────────────────────────────────────────────────────────────────────
@@ -986,6 +1188,16 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         for s, v in surface_res.items() if len(v) >= 3
     }
 
+    # Win streak: positive = consecutive wins, negative = consecutive losses
+    win_streak = 0
+    if results:
+        direction = results[0]  # 1=win, 0=loss
+        for r in results:
+            if r == direction:
+                win_streak += 1 if direction else -1
+            else:
+                break
+
     return {
         "svpt_won":     round(sum(sv_wons) / len(sv_wons), 4) if sv_wons else None,
         "rtpt_won":     round(sum(rt_wons) / len(rt_wons), 4) if rt_wons else None,
@@ -1001,12 +1213,14 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         "bp_save_pct":  round(bp_saved / bp_faced, 4) if bp_faced >= 5 else None,
         "deciding_pct": round(dec_won / dec_total, 4) if dec_total >= 3 else None,
         "surface_form": surf_form,
+        "win_streak":   win_streak,
     }
 
 
-def load_sackmann_data() -> None:
-    """Fetch Sackmann CSVs and populate _SACKMANN_PROFILES + _RECENT_STATS."""
-    all_matches = fetch_sackmann_matches()
+def load_sackmann_data(all_matches: Optional[List[dict]] = None) -> None:
+    """Populate _SACKMANN_PROFILES + _RECENT_STATS from Sackmann CSV data."""
+    if all_matches is None:
+        all_matches = fetch_sackmann_matches()
     if not all_matches:
         log.warning("load_sackmann_data: no match data — using static stats only")
         return
@@ -1038,6 +1252,7 @@ def predict(p1_key: str, p2_key: str, surface: str,
     """
     Base: 25% Surface ELO + 25% Markov + 20% H/B + 30% Advanced (DF-adjusted H/B)
     Adj:  fatigue(age-weighted) | surface-form | H2H | clutch | DF | lefty | backhand
+          altitude | wind | win-streak
     """
     surf_adj = SURFACE_PT_ADJ.get(surface, 0.0)
     is_wta   = "wta" in sport_key.lower() or "wta" in tour_level.lower()
@@ -1097,19 +1312,30 @@ def predict(p1_key: str, p2_key: str, surface: str,
     clutch_val = clutch_adj(p1_key, p2_key)
     df_val     = df_penalty_adj(p1_key, p2_key, is_wta)
     bh_val     = backhand_matchup_adj(p1_key, p2_key, surface)
+    streak_val = win_streak_adj(p1_key, p2_key)
+
+    alt_adj    = altitude_adj(tournament, surface)
+    # altitude shifts serve probability directly (same direction for both)
+    p1_sv = max(0.50, min(0.78, p1_sv + alt_adj))
+    p2_sv = max(0.50, min(0.78, p2_sv + alt_adj))
+
+    wind_val, wind_kmh = wind_adj(tournament, surface, p1_key, p2_key)
 
     blend = max(0.05, min(0.95,
-        raw_prob + fat_adj_val + form_adj_val + h2h_val + clutch_val + df_val + bh_val
+        raw_prob + fat_adj_val + form_adj_val + h2h_val + clutch_val
+        + df_val + bh_val + streak_val + wind_val
     ))
 
     exp_g = expected_total_games(p1_sv, p2_sv, best_of=best_of)
 
     log.info(
         "predict %s vs %s [%s%s] ELO=%.3f MC=%.3f HB=%.3f ADV=%.3f raw=%.3f "
-        "fat=%+.3f frm=%+.3f h2h=%+.3f clch=%+.3f df=%+.3f bh=%+.3f -> %.3f",
+        "fat=%+.3f frm=%+.3f h2h=%+.3f clch=%+.3f df=%+.3f bh=%+.3f "
+        "streak=%+.3f wind=%+.3f alt=%.3f -> %.3f",
         p1_key, p2_key, surface, " indoor" if cs_adj > 0.01 else "",
         elo_p1, markov_p1, hb_p1, adv_p1, raw_prob,
-        fat_adj_val, form_adj_val, h2h_val, clutch_val, df_val, bh_val, blend,
+        fat_adj_val, form_adj_val, h2h_val, clutch_val, df_val, bh_val,
+        streak_val, wind_val, alt_adj, blend,
     )
 
     return {
@@ -1145,6 +1371,12 @@ def predict(p1_key: str, p2_key: str, surface: str,
         "best_of":         best_of,
         "surface":         surface,
         "court_speed_adj": round(cs_adj, 4),
+        "altitude_adj":    round(alt_adj, 4),
+        "wind_adj":        round(wind_val, 4),
+        "wind_kmh":        round(wind_kmh, 1),
+        "streak_adj":      round(streak_val, 4),
+        "win_streak1":     prof1.get("win_streak", 0),
+        "win_streak2":     prof2.get("win_streak", 0),
         "is_wta":          is_wta,
     }
 
@@ -1283,9 +1515,12 @@ def kelly_stake(model_p: float, price: float, conf: float = 1.0) -> float:
     return max(KELLY_FLOOR, min(KELLY_MAX, stake))
 
 
-def generate_picks(matches: List[dict]) -> List[dict]:
+def generate_picks(matches: List[dict],
+                   odds_prev: Optional[Dict[str, dict]] = None) -> List[dict]:
     picks     = []
     daily_exp = 0.0
+    if odds_prev is None:
+        odds_prev = {}
 
     for m in matches:
         if daily_exp >= MAX_DAILY_EXP:
@@ -1299,6 +1534,12 @@ def generate_picks(matches: List[dict]) -> List[dict]:
         blend_p2 = 1.0 - blend_p1
         dv_p1    = odds_info["dv_p_home"]
         dv_p2    = odds_info["dv_p_away"]
+
+        # Odds movement signal (smart-money boost)
+        ok = "%s|%s" % (odds_info["home"].lower(), odds_info["away"].lower())
+        steam_adj, steam_label = odds_move_signal(ok, odds_info, odds_prev)
+        blend_p1 = max(0.05, min(0.95, blend_p1 + steam_adj))
+        blend_p2 = 1.0 - blend_p1
 
         edge1 = blend_p1 - dv_p1
         edge2 = blend_p2 - dv_p2
@@ -1378,6 +1619,13 @@ def generate_picks(matches: List[dict]) -> List[dict]:
             "ace_rate1":      round(pred.get("ace_rate1", 0.06) * 100, 2),
             "ace_rate2":      round(pred.get("ace_rate2", 0.06) * 100, 2),
             "court_speed":    round(pred.get("court_speed_adj", 0.0) * 100, 2),
+            "altitude_adj":   round(pred.get("altitude_adj", 0.0) * 100, 2),
+            "wind_adj":       round(pred.get("wind_adj", 0.0) * 100, 2),
+            "wind_kmh":       pred.get("wind_kmh", 0.0),
+            "streak_adj":     round(pred.get("streak_adj", 0.0) * 100, 2),
+            "win_streak1":    pred.get("win_streak1", 0),
+            "win_streak2":    pred.get("win_streak2", 0),
+            "steam":          steam_label,
         })
         log.info("  PICK %s %s vs %s -> %s @%.2f model=%.1f%% edge=+%.1f%% $%.0f",
                  star, odds_info["home"], odds_info["away"],
@@ -1475,9 +1723,13 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             if p.get("clutch_adj"): parts.append("心理:%+.1f%%" % p["clutch_adj"])
             if p.get("df_adj"):     parts.append("雙誤:%+.1f%%" % p["df_adj"])
             if p.get("lefty_adj"):  parts.append("左手:%+.1f%%" % p["lefty_adj"])
+            if p.get("streak_adj"): parts.append("連勝:%+.1f%%" % p["streak_adj"])
+            if p.get("wind_kmh", 0) > 15:
+                parts.append("風速:%.0fkm/h" % p["wind_kmh"])
+            if p.get("steam"):      parts.append("💰 %s" % p["steam"].replace("_", " "))
             if parts:
                 lines.append("  " + "  ".join(parts))
-            lines.append("  搜七:%.0f%%/%.0f%%  破發救:%.0f%%/%.0f%%" % (
+            lines.append("  搶七:%.0f%%/%.0f%%  破發救:%.0f%%/%.0f%%" % (
                 p.get("tb_win1", 50), p.get("tb_win2", 50),
                 p.get("bp_save1", 60), p.get("bp_save2", 60)))
     lines.append("```")
@@ -1500,7 +1752,7 @@ def write_json(picks: List[dict], stats: dict, history: dict,
     payload = {
         "generated_at":  now.strftime("%Y-%m-%d %H:%M") + " (台灣時間)",
         "date":          now.strftime("%Y-%m-%d"),
-        "model_version": "v3.0 — 9-factor",
+        "model_version": "v3.1 — 9-factor + steam/altitude/wind/streak/auto-injury",
         "stats":         stats,
         "picks":         picks,
         "recent_history": list(reversed(history.get("bets", [])[-10:])),
@@ -1518,28 +1770,43 @@ def write_json(picks: List[dict], stats: dict, history: dict,
 
 def run() -> None:
     now_tw = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    log.info("=== Tennis Bot v3.0 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
+    log.info("=== Tennis Bot v3.1 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
 
     fetch_ta_elo()
-    load_sackmann_data()
+    all_matches_raw = fetch_sackmann_matches()
+
+    load_sackmann_data(all_matches_raw)
+
+    # Auto-detect retired / injured players from recent Sackmann data
+    auto_inj = detect_injuries(all_matches_raw) if all_matches_raw else set()
+    _INJURIES.update(auto_inj)
+    if auto_inj:
+        log.info("Auto-flagged injuries/retirements: %s", auto_inj)
+
+    # Load previous odds snapshot for steam detection
+    odds_prev = load_odds_prev()
 
     raw_odds = fetch_odds()
     odds_map = parse_odds(raw_odds)
+
+    # Save current odds for next-run comparison
+    save_odds_prev(odds_map)
 
     matches:    List[dict]      = []
     game_preds: Dict[str, dict] = {}
 
     for key, odds_info in odds_map.items():
-        sport   = odds_info.get("sport", "tennis_atp")
-        surface = infer_surface(sport)
-        t_lvl   = infer_tour_level(sport)
-        best_of = TOUR_META.get(t_lvl, {}).get("best_of", 3)
+        sport      = odds_info.get("sport", "tennis_atp")
+        surface    = infer_surface(sport)
+        t_lvl      = infer_tour_level(sport)
+        best_of    = TOUR_META.get(t_lvl, {}).get("best_of", 3)
+        tournament = extract_tournament(sport, odds_info)
 
         p1_key = norm_player(odds_info["home"])
         p2_key = norm_player(odds_info["away"])
 
         pred = predict(p1_key, p2_key, surface, t_lvl, best_of,
-                       sport_key=sport, tournament="")
+                       sport_key=sport, tournament=tournament)
 
         game_preds[key] = {
             "p1": odds_info["home"], "p2": odds_info["away"],
@@ -1558,7 +1825,7 @@ def run() -> None:
 
     log.info("Processed %d matches", len(matches))
 
-    picks   = generate_picks(matches)
+    picks   = generate_picks(matches, odds_prev=odds_prev)
     history = load_history()
     stats   = compute_stats(history)
 
