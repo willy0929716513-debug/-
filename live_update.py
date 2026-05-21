@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
-Tennis Live Update — 場中賠率監控器
-讀取 picks_latest.json → 比較即時賠率與賽前賠率的對比
-→ 偵測背水路/逆轉機會 → 推播通知。
+Tennis Live Update — 場中即時比分 + 賠率監控
+1. 從 Odds API /scores 拉取進行中比賽的即時比分
+2. 從 Odds API /odds  拉取即時賠率，和賽前預測比較
+3. 結果寫入 picks_latest.json
+4. exit 0 = 有進行中比賽；exit 1 = 無任何進行中比賽（供迴圈計數用）
 """
 
 import datetime
 import json
 import logging
 import os
+import sys
 import time
 
 import requests
@@ -21,8 +24,17 @@ ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 NTFY_TOPIC   = os.environ.get("NTFY_TOPIC", "tennis-picks")
 JSON_PATH    = "docs/picks_latest.json"
 
-# Odds drift thresholds
-DRIFT_STRONG   = 0.15   # >= 15% prob shift → 強勢一方狀況明顯
+DRIFT_STRONG = 0.15   # >= 15% prob shift → 推播通知
+
+TENNIS_SPORTS = [
+    "tennis_atp", "tennis_wta",
+    "tennis_atp_french_open",   "tennis_wta_french_open",
+    "tennis_atp_wimbledon",     "tennis_wta_wimbledon",
+    "tennis_atp_us_open",       "tennis_wta_us_open",
+    "tennis_atp_australian_open","tennis_wta_australian_open",
+    "tennis_atp_madrid_open",   "tennis_wta_madrid_open",
+    "tennis_atp_rome",          "tennis_wta_rome",
+]
 
 
 def send_ntfy(title: str, message: str) -> None:
@@ -39,13 +51,13 @@ def send_ntfy(title: str, message: str) -> None:
         log.warning("ntfy: %s", e)
 
 
-def safe_get(url: str, params: dict = None) -> dict | None:
+def safe_get(url: str, params: dict = None):
     try:
         r = requests.get(url, params=params, timeout=15)
         r.raise_for_status()
         return r.json()
     except Exception as e:
-        log.warning("safe_get: %s", e)
+        log.warning("safe_get %s: %s", url.split("?")[0], e)
         return None
 
 
@@ -54,15 +66,59 @@ def devigge(p1: float, p2: float) -> float:
     return p1 / t if t > 0 else 0.5
 
 
-def fetch_live_odds() -> dict:
-    """抓取即時賠率快照（The Odds API h2h）回傳 {matchup_key: dv_p_home}"""
+# ── 即時比分 ──────────────────────────────────────────────────────────────────
+
+def fetch_live_scores() -> dict:
+    """
+    從 /scores 端點抓進行中比賽的即時比分。
+    回傳 {matchup_key: {home, away, home_score, away_score, sport_title, last_update}}
+    """
     if not ODDS_API_KEY:
         return {}
-    sports = ["tennis_atp", "tennis_wta",
-              "tennis_atp_french_open", "tennis_wta_french_open",
-              "tennis_atp_wimbledon", "tennis_wta_wimbledon"]
-    live: dict = {}
-    for sport in sports:
+    scores: dict = {}
+    seen: set = set()
+    for sport in TENNIS_SPORTS:
+        data = safe_get(
+            "https://api.the-odds-api.com/v4/sports/%s/scores/" % sport,
+            params={"apiKey": ODDS_API_KEY, "daysFrom": 1},
+        )
+        if not data:
+            continue
+        for game in data:
+            if game.get("completed"):
+                continue                    # 跳過已結束比賽
+            home = game.get("home_team", "")
+            away = game.get("away_team", "")
+            if not home or not away:
+                continue
+            key = "%s|%s" % (home.lower(), away.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            raw_scores = game.get("scores") or []
+            home_score = next((s["score"] for s in raw_scores if s.get("name") == home), "")
+            away_score = next((s["score"] for s in raw_scores if s.get("name") == away), "")
+            scores[key] = {
+                "home":        home,
+                "away":        away,
+                "home_score":  home_score,
+                "away_score":  away_score,
+                "sport_title": game.get("sport_title", ""),
+                "last_update": game.get("last_update", ""),
+            }
+    log.info("Live scores: %d active matches", len(scores))
+    return scores
+
+
+# ── 即時賠率 ──────────────────────────────────────────────────────────────────
+
+def fetch_live_odds() -> dict:
+    """抓即時賠率快照，回傳 {matchup_key: {...}}"""
+    if not ODDS_API_KEY:
+        return {}
+    odds: dict = {}
+    seen: set = set()
+    for sport in TENNIS_SPORTS:
         data = safe_get(
             "https://api.the-odds-api.com/v4/sports/%s/odds/" % sport,
             params={"apiKey": ODDS_API_KEY, "regions": "us,eu",
@@ -81,104 +137,118 @@ def fetch_live_odds() -> dict:
                         continue
                     for oc in mkt.get("outcomes", []):
                         pr = float(oc.get("price", 1.0))
-                        if oc["name"] == home:
+                        if oc.get("name") == home:
                             hp.append(pr)
-                        elif oc["name"] == away:
+                        elif oc.get("name") == away:
                             ap.append(pr)
             if not hp or not ap:
                 continue
+            key = "%s|%s" % (home.lower(), away.lower())
+            if key in seen:
+                continue
+            seen.add(key)
             cons_h = sum(hp) / len(hp)
             cons_a = sum(ap) / len(ap)
             dv_h   = devigge(1.0 / cons_h, 1.0 / cons_a)
-            key = "%s|%s" % (home.lower(), away.lower())
-            live[key] = {"home": home, "away": away, "dv_p_home": dv_h,
-                         "best_home": max(hp), "best_away": max(ap)}
-    log.info("Live odds: %d matches", len(live))
-    return live
+            odds[key] = {
+                "home": home, "away": away,
+                "dv_p_home":  round(dv_h, 4),
+                "best_home":  round(max(hp), 3),
+                "best_away":  round(max(ap), 3),
+            }
+    log.info("Live odds: %d matches", len(odds))
+    return odds
 
 
-def generate_live_alerts(game_preds: dict, live_odds: dict) -> list:
-    """Compare pre-match vs live odds to detect momentum shifts."""
-    alerts = []
-    for key, live in live_odds.items():
-        pre = game_preds.get(key)
-        if not pre:
-            continue
-        pre_p1   = float(pre.get("model_p1", 0.5))
-        live_p1  = live["dv_p_home"]
-        drift    = live_p1 - pre_p1
+# ── 合併 ─────────────────────────────────────────────────────────────────────
 
-        bet = reason = None
+def build_live_matches(scores: dict, odds: dict, game_preds: dict) -> list:
+    """
+    合併比分 + 賠率 + 賽前預測，產生 live_matches 列表。
+    以 scores（進行中比賽）為主，odds 和 game_preds 補充資料。
+    """
+    result = []
+    for key, sc in scores.items():
+        od   = odds.get(key, {})
+        pre  = game_preds.get(key, {})
 
-        if drift >= DRIFT_STRONG:
-            # Live market heavily favours p1 vs pre-match: p1 dominating
-            bet    = "%s 獄站贏" % live["home"]
-            reason = ("賠率智威大幅漂移 +%.0f%% → 場中確立優勢"
-                      % (drift * 100))
-        elif drift <= -DRIFT_STRONG:
-            # p2 dominating
-            bet    = "%s 獄站贏" % live["away"]
-            reason = ("賠率智威大幅漂移 −%.0f%% → 逆轉流勢確立"
-                      % (abs(drift) * 100))
+        pre_p1  = float(pre.get("model_p1", 0.5)) if pre else None
+        live_p1 = od.get("dv_p_home")
+        drift   = round((live_p1 - pre_p1) * 100, 1) if (pre_p1 and live_p1) else None
 
-        if bet:
-            log.info("  LIVE ALERT: %s — %s", bet, reason)
-
-        alerts.append({
-            "home":       live["home"],
-            "away":       live["away"],
-            "pre_p1":     round(pre_p1 * 100, 1),
-            "live_p1":    round(live_p1 * 100, 1),
-            "drift":      round(drift * 100, 1),
-            "best_home":  live["best_home"],
-            "best_away":  live["best_away"],
-            "bet":        bet,
-            "reason":     reason,
+        result.append({
+            "home":        sc["home"],
+            "away":        sc["away"],
+            "home_score":  sc["home_score"],
+            "away_score":  sc["away_score"],
+            "sport_title": sc["sport_title"],
+            "last_update": sc["last_update"],
+            "best_home":   od.get("best_home"),
+            "best_away":   od.get("best_away"),
+            "drift":       drift,           # None if no pre-match data
         })
+    return result
 
-    return alerts
+
+def check_drift_alerts(live_matches: list, prev_alerted: set) -> None:
+    """推播賠率大幅漂移的新通知。"""
+    for m in live_matches:
+        d = m.get("drift")
+        if d is None or abs(d) < DRIFT_STRONG * 100:
+            continue
+        key = "%s|%s" % (m["home"].lower(), m["away"].lower())
+        if key in prev_alerted:
+            continue
+        winner = m["home"] if d > 0 else m["away"]
+        send_ntfy(
+            "🎾 場中信號 — %s 確立優勢" % winner,
+            "%s vs %s\n賠率漂移 %+.0f%% | 比分 %s : %s" % (
+                m["home"], m["away"], d,
+                m["home_score"] or "—", m["away_score"] or "—",
+            ),
+        )
+        prev_alerted.add(key)
 
 
-def main() -> None:
+# ── 主程式 ────────────────────────────────────────────────────────────────────
+
+def main() -> int:
+    """
+    回傳 0 = 有進行中比賽
+    回傳 1 = 無進行中比賽（供外層 bash 迴圈計數）
+    """
     if not os.path.exists(JSON_PATH):
         log.error("%s not found — run tennis_bot.py first", JSON_PATH)
-        return
+        return 1
 
     with open(JSON_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     game_preds = data.get("game_preds", {})
-    log.info("game_preds: %d matches", len(game_preds))
-
-    prev_alerts = {
-        "%s|%s" % (a["home"].lower(), a["away"].lower())
-        for a in data.get("live_matches", []) if a.get("bet")
+    prev_alerted = {
+        "%s|%s" % (m["home"].lower(), m["away"].lower())
+        for m in data.get("live_matches", [])
+        if m.get("drift") is not None and abs(m.get("drift", 0)) >= DRIFT_STRONG * 100
     }
 
-    live_odds  = fetch_live_odds()
-    alerts     = generate_live_alerts(game_preds, live_odds)
+    scores       = fetch_live_scores()
+    live_odds    = fetch_live_odds()
+    live_matches = build_live_matches(scores, live_odds, game_preds)
 
-    # Push notifications only for NEW alerts
-    for a in alerts:
-        if a.get("bet"):
-            key = "%s|%s" % (a["home"].lower(), a["away"].lower())
-            if key not in prev_alerts:
-                send_ntfy(
-                    "🎾 場中推薦 — %s" % a["bet"],
-                    "%s vs %s\n%s" % (a["home"], a["away"], a["reason"])
-                )
+    check_drift_alerts(live_matches, prev_alerted)
 
     now_tw = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    data["live_matches"]     = alerts
-    data["live_updated_at"]  = now_tw.strftime("%Y-%m-%d %H:%M") + " (台灣時間)"
-    data["live_updated_ts"]  = int(time.time())
+    data["live_matches"]    = live_matches
+    data["live_updated_at"] = now_tw.strftime("%Y-%m-%d %H:%M") + " (台灣時間)"
+    data["live_updated_ts"] = int(time.time())
 
     with open(JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    bets = [a for a in alerts if a.get("bet")]
-    log.info("Done — %d 場中比賽 / %d 個場中推薦", len(alerts), len(bets))
+    active = len(live_matches)
+    log.info("Done — %d 場進行中比賽", active)
+    return 0 if active > 0 else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

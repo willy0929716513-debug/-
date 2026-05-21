@@ -1880,6 +1880,61 @@ def save_history(hist: dict) -> None:
         log.warning("save_history: %s", e)
 
 
+# Regional opening times (TW, UTC+8) — record window = 40 min before each
+# AUS/Asia: 07:00, Europe: 17:00, Americas: 23:00
+_RECORD_WINDOWS: List[Tuple[int, int]] = [
+    (6, 20),   # 06:20–07:00 → AUS/Asia opens 07:00
+    (16, 20),  # 16:20–17:00 → Europe opens 17:00
+    (22, 20),  # 22:20–23:00 → Americas opens 23:00
+]
+
+
+def in_recording_window(now_tw: datetime.datetime) -> bool:
+    """Return True if current TW time is within 40 min before a regional open."""
+    h, m = now_tw.hour, now_tw.minute
+    cur = h * 60 + m
+    for wh, wm in _RECORD_WINDOWS:
+        win_start = wh * 60 + wm
+        win_end   = win_start + 40
+        if win_start <= cur < win_end:
+            return True
+    return False
+
+
+def record_picks_to_history(picks: List[dict], hist: dict,
+                             now_tw: datetime.datetime) -> None:
+    """Append today's picks as pending bets if not already recorded."""
+    bets   = hist.setdefault("bets", [])
+    today  = now_tw.strftime("%Y-%m-%d")
+    # Deduplicate: skip picks already recorded for same matchup today
+    existing = {
+        (b["p1"], b["p2"], b["date"])
+        for b in bets
+        if "p1" in b and "p2" in b
+    }
+    added = 0
+    for p in picks:
+        key = (p["p1"], p["p2"], today)
+        if key in existing:
+            continue
+        bets.append({
+            "date":     today,
+            "p1":       p["p1"],
+            "p2":       p["p2"],
+            "bet_on":   p["bet_on"],
+            "price":    p["best_price"],
+            "stake":    p["stake"],
+            "edge":     p["edge"],
+            "tier":     p["tier"],
+            "surface":  p["surface"],
+            "tour":     p["tour"],
+            "result":   "P",   # pending — update manually or via result bot
+        })
+        existing.add(key)
+        added += 1
+    log.info("record_picks_to_history: +%d new bets (total %d)", added, len(bets))
+
+
 def compute_stats(hist: dict) -> dict:
     bets = [b for b in hist.get("bets", []) if b.get("result") in ("W", "L")]
     if not bets:
@@ -2044,8 +2099,18 @@ def run() -> None:
 
     picks   = generate_picks(matches, odds_prev=odds_prev)
     history = load_history()
-    stats   = compute_stats(history)
 
+    # Only record picks to Gist when inside a regional recording window
+    # (40 min before AUS 07:00 / EU 17:00 / Americas 23:00 TW)
+    if picks and in_recording_window(now_tw):
+        log.info("Inside recording window — saving %d picks to Gist", len(picks))
+        record_picks_to_history(picks, history, now_tw)
+        save_history(history)
+    else:
+        log.info("Outside recording window (TW %s) — skip Gist write",
+                 now_tw.strftime("%H:%M"))
+
+    stats   = compute_stats(history)
     write_json(picks, stats, history, game_preds, now_tw)
 
     if picks:
