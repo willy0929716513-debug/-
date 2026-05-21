@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Tennis Bot v2.0 — ATP/WTA 巡迴賽預測系統
-6因子模型：Surface ELO 35% + Markov Chain 35% + Hold/Break 30%
-附加調整：體能 ±8% | 近期狀態 ±5% | H2H ±5%
+Tennis Bot v3.1 — ATP/WTA 巡迴賽預測系統
+9因子模型：Surface ELO 25% + Markov Chain 25% + Hold/Break 20% + Advanced Stats 30%
+附加調整：體能(年齡加權) ±10% | 場地狀態 ±5% | H2H ±5% | 搶七/關鍵分 ±7%
+         雙誤懲罰 ±4% | 左手剋制 ±3% | 反拍剋制 ±2% | 室內場速(進入發球模型)
 資料來源：Jeff Sackmann ATP/WTA CSVs + The Odds API
 """
 
@@ -49,152 +50,260 @@ MIN_BOOKS     = 3
 MAX_PICKS     = 6
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ADVANCED MODEL CONSTANTS  (v3)
+# ─────────────────────────────────────────────────────────────────────────────
+AGE_FATIGUE_SCALE = 0.06    # extra fatigue multiplier per year above 28
+LEFTY_SERVE_BONUS = 0.012   # serve point adj for lefty serving vs righty
+LEFTY_GRASS_EXTRA = 0.006   # additional grass lefty bonus
+BH_TOPSPIN_VULN   = 0.008   # 1h backhand vulnerability vs lefty topspin (clay)
+
+INDOOR_TOURNAMENTS = {
+    "paris", "rotterdam", "vienna", "sofia", "marseille",
+    "montpellier", "dallas", "memphis", "zhuhai", "moscow",
+    "basel", "cologne", "st_petersburg", "astana", "nur-sultan",
+    "bercy", "indoor",
+}
+
+COURT_SPEED_ADJ: Dict[str, float] = {
+    # Indoor hard (fast)
+    "paris":            +0.018,
+    "rotterdam":        +0.020,
+    "vienna":           +0.018,
+    "sofia":            +0.016,
+    "marseille":        +0.016,
+    "dallas":           +0.014,
+    # Outdoor hard variations
+    "us_open":          +0.010,
+    "australian_open":  +0.008,
+    "miami":            +0.005,
+    "indian_wells":     +0.005,
+    # Slow clay
+    "monte_carlo":      -0.005,
+    "hamburg":          -0.003,
+    # Fast grass
+    "halle":            +0.006,
+    "queens":           +0.006,
+    "eastbourne":       +0.004,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ALTITUDE  (metres above sea level for tournament cities)
+# ─────────────────────────────────────────────────────────────────────────────
+ALTITUDE_M: Dict[str, int] = {
+    "buenos_aires": 1138, "bogota": 2600, "quito": 2850, "lima": 154,
+    "santiago": 520, "mexico_city": 2250, "guadalajara": 1566,
+    "madrid": 667, "kitzbuhel": 762, "gstaad": 1060,
+    "granada": 685, "lyon": 173, "chengdu": 506, "kunming": 1895,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TOURNAMENT COORDINATES  (lat, lon) for weather fetch
+# ─────────────────────────────────────────────────────────────────────────────
+TOURNAMENT_COORDS: Dict[str, Tuple[float, float]] = {
+    "roland_garros":    (48.847,   2.250),
+    "french_open":      (48.847,   2.250),
+    "wimbledon":        (51.434,  -0.214),
+    "us_open":          (40.750, -73.846),
+    "australian_open":  (-37.821, 144.981),
+    "indian_wells":     (33.720, -116.369),
+    "miami":            (25.683,  -80.180),
+    "monte_carlo":      (43.745,   7.427),
+    "madrid":           (40.416,  -3.703),
+    "rome":             (41.897,  12.469),
+    "barcelona":        (41.389,   2.165),
+    "halle":            (51.932,   8.660),
+    "queens":           (51.490,  -0.212),
+    "eastbourne":       (50.768,   0.280),
+    "hamburg":          (53.553,   9.992),
+    "toronto":          (43.641,  -79.382),
+    "cincinnati":       (39.104,  -84.510),
+    "beijing":          (39.906, 116.391),
+    "shanghai":         (31.225, 121.474),
+    "kitzbuhel":        (47.444,  12.391),
+    "buenos_aires":     (-34.614, -58.382),
+    "rio":              (-22.906, -43.172),
+    "bogota":           ( 4.711,  -74.072),
+    "santiago":         (-33.437, -70.650),
+    "umag":             (45.434,  13.524),
+    "bastad":           (56.430,  12.854),
+    "gstaad":           (46.474,   7.288),
+}
+
+ODDS_PREV_PATH = "docs/.odds_prev.json"
+
+# ─────────────────────────────────────────────────────────────────────────────
 # ATP PLAYER DATABASE
-# svpt_won : P(server wins a point when THIS player is serving)
-# rtpt_won : P(THIS player wins a return point vs any server)
-# elo      : surface-specific Elo rating
+# svpt_won  : P(server wins a point when THIS player is serving)
+# rtpt_won  : P(THIS player wins a return point vs any server)
+# elo       : surface-specific Elo rating
+# birth_year: for age-based fatigue multiplier
+# backhand  : "1h" or "2h"
 # ─────────────────────────────────────────────────────────────────────────────
 ATP_STATS: Dict[str, dict] = {
     "djokovic": {
         "full_name": "Novak Djokovic", "hand": "R", "rank": 2, "country": "SRB",
+        "birth_year": 1987, "backhand": "2h",
         "hard":  {"svpt_won": 0.663, "rtpt_won": 0.388, "elo": 2375},
         "clay":  {"svpt_won": 0.652, "rtpt_won": 0.392, "elo": 2420},
         "grass": {"svpt_won": 0.671, "rtpt_won": 0.385, "elo": 2355},
     },
     "alcaraz": {
         "full_name": "Carlos Alcaraz", "hand": "R", "rank": 1, "country": "ESP",
+        "birth_year": 2003, "backhand": "2h",
         "hard":  {"svpt_won": 0.658, "rtpt_won": 0.382, "elo": 2300},
         "clay":  {"svpt_won": 0.660, "rtpt_won": 0.390, "elo": 2340},
         "grass": {"svpt_won": 0.670, "rtpt_won": 0.378, "elo": 2285},
     },
     "sinner": {
         "full_name": "Jannik Sinner", "hand": "R", "rank": 1, "country": "ITA",
+        "birth_year": 2001, "backhand": "2h",
         "hard":  {"svpt_won": 0.665, "rtpt_won": 0.383, "elo": 2310},
         "clay":  {"svpt_won": 0.655, "rtpt_won": 0.375, "elo": 2265},
         "grass": {"svpt_won": 0.668, "rtpt_won": 0.372, "elo": 2250},
     },
     "medvedev": {
         "full_name": "Daniil Medvedev", "hand": "R", "rank": 5, "country": "RUS",
+        "birth_year": 1996, "backhand": "2h",
         "hard":  {"svpt_won": 0.662, "rtpt_won": 0.375, "elo": 2240},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.345, "elo": 2085},
         "grass": {"svpt_won": 0.660, "rtpt_won": 0.355, "elo": 2145},
     },
     "zverev": {
         "full_name": "Alexander Zverev", "hand": "R", "rank": 3, "country": "GER",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.650, "rtpt_won": 0.360, "elo": 2200},
         "clay":  {"svpt_won": 0.648, "rtpt_won": 0.365, "elo": 2215},
         "grass": {"svpt_won": 0.655, "rtpt_won": 0.352, "elo": 2160},
     },
     "rublev": {
         "full_name": "Andrey Rublev", "hand": "R", "rank": 7, "country": "RUS",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.635, "rtpt_won": 0.355, "elo": 2120},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.360, "elo": 2140},
         "grass": {"svpt_won": 0.638, "rtpt_won": 0.345, "elo": 2080},
     },
     "tsitsipas": {
         "full_name": "Stefanos Tsitsipas", "hand": "R", "rank": 11, "country": "GRE",
+        "birth_year": 1998, "backhand": "1h",
         "hard":  {"svpt_won": 0.638, "rtpt_won": 0.358, "elo": 2110},
         "clay":  {"svpt_won": 0.648, "rtpt_won": 0.370, "elo": 2175},
         "grass": {"svpt_won": 0.645, "rtpt_won": 0.348, "elo": 2065},
     },
     "fritz": {
         "full_name": "Taylor Fritz", "hand": "R", "rank": 4, "country": "USA",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.660, "rtpt_won": 0.358, "elo": 2155},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.338, "elo": 2020},
         "grass": {"svpt_won": 0.668, "rtpt_won": 0.355, "elo": 2120},
     },
     "de_minaur": {
         "full_name": "Alex de Minaur", "hand": "R", "rank": 9, "country": "AUS",
+        "birth_year": 1999, "backhand": "2h",
         "hard":  {"svpt_won": 0.635, "rtpt_won": 0.368, "elo": 2100},
         "clay":  {"svpt_won": 0.628, "rtpt_won": 0.365, "elo": 2070},
         "grass": {"svpt_won": 0.640, "rtpt_won": 0.365, "elo": 2085},
     },
     "hurkacz": {
         "full_name": "Hubert Hurkacz", "hand": "R", "rank": 10, "country": "POL",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.665, "rtpt_won": 0.348, "elo": 2095},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.325, "elo": 1960},
         "grass": {"svpt_won": 0.678, "rtpt_won": 0.345, "elo": 2110},
     },
     "dimitrov": {
         "full_name": "Grigor Dimitrov", "hand": "R", "rank": 13, "country": "BUL",
+        "birth_year": 1991, "backhand": "1h",
         "hard":  {"svpt_won": 0.645, "rtpt_won": 0.355, "elo": 2060},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.348, "elo": 2020},
         "grass": {"svpt_won": 0.652, "rtpt_won": 0.352, "elo": 2045},
     },
     "paul": {
         "full_name": "Tommy Paul", "hand": "R", "rank": 12, "country": "USA",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.640, "rtpt_won": 0.355, "elo": 2040},
         "clay":  {"svpt_won": 0.632, "rtpt_won": 0.345, "elo": 2005},
         "grass": {"svpt_won": 0.645, "rtpt_won": 0.348, "elo": 2025},
     },
     "auger_aliassime": {
         "full_name": "Felix Auger-Aliassime", "hand": "R", "rank": 20, "country": "CAN",
+        "birth_year": 2000, "backhand": "2h",
         "hard":  {"svpt_won": 0.655, "rtpt_won": 0.352, "elo": 2035},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.338, "elo": 1980},
         "grass": {"svpt_won": 0.662, "rtpt_won": 0.348, "elo": 2020},
     },
     "musetti": {
         "full_name": "Lorenzo Musetti", "hand": "L", "rank": 16, "country": "ITA",
+        "birth_year": 2002, "backhand": "1h",
         "hard":  {"svpt_won": 0.625, "rtpt_won": 0.348, "elo": 2010},
         "clay":  {"svpt_won": 0.635, "rtpt_won": 0.358, "elo": 2055},
         "grass": {"svpt_won": 0.638, "rtpt_won": 0.348, "elo": 2035},
     },
     "tiafoe": {
         "full_name": "Frances Tiafoe", "hand": "R", "rank": 15, "country": "USA",
+        "birth_year": 1998, "backhand": "2h",
         "hard":  {"svpt_won": 0.638, "rtpt_won": 0.352, "elo": 2025},
         "clay":  {"svpt_won": 0.620, "rtpt_won": 0.335, "elo": 1950},
         "grass": {"svpt_won": 0.648, "rtpt_won": 0.345, "elo": 1985},
     },
     "berrettini": {
         "full_name": "Matteo Berrettini", "hand": "R", "rank": 35, "country": "ITA",
+        "birth_year": 1996, "backhand": "1h",
         "hard":  {"svpt_won": 0.658, "rtpt_won": 0.345, "elo": 2050},
         "clay":  {"svpt_won": 0.648, "rtpt_won": 0.342, "elo": 2015},
         "grass": {"svpt_won": 0.680, "rtpt_won": 0.345, "elo": 2085},
     },
     "ruud": {
         "full_name": "Casper Ruud", "hand": "R", "rank": 14, "country": "NOR",
+        "birth_year": 1998, "backhand": "2h",
         "hard":  {"svpt_won": 0.630, "rtpt_won": 0.348, "elo": 2025},
         "clay":  {"svpt_won": 0.645, "rtpt_won": 0.362, "elo": 2095},
         "grass": {"svpt_won": 0.628, "rtpt_won": 0.332, "elo": 1945},
     },
     "draper": {
         "full_name": "Jack Draper", "hand": "L", "rank": 17, "country": "GBR",
+        "birth_year": 2001, "backhand": "2h",
         "hard":  {"svpt_won": 0.648, "rtpt_won": 0.355, "elo": 2020},
         "clay":  {"svpt_won": 0.638, "rtpt_won": 0.348, "elo": 1985},
         "grass": {"svpt_won": 0.655, "rtpt_won": 0.352, "elo": 2030},
     },
     "shelton": {
         "full_name": "Ben Shelton", "hand": "L", "rank": 21, "country": "USA",
+        "birth_year": 2002, "backhand": "2h",
         "hard":  {"svpt_won": 0.658, "rtpt_won": 0.348, "elo": 2000},
         "clay":  {"svpt_won": 0.628, "rtpt_won": 0.325, "elo": 1890},
         "grass": {"svpt_won": 0.668, "rtpt_won": 0.340, "elo": 1985},
     },
     "khachanov": {
         "full_name": "Karen Khachanov", "hand": "R", "rank": 22, "country": "RUS",
+        "birth_year": 1996, "backhand": "2h",
         "hard":  {"svpt_won": 0.645, "rtpt_won": 0.345, "elo": 2000},
         "clay":  {"svpt_won": 0.635, "rtpt_won": 0.338, "elo": 1975},
         "grass": {"svpt_won": 0.650, "rtpt_won": 0.335, "elo": 1975},
     },
     "bublik": {
         "full_name": "Alexander Bublik", "hand": "R", "rank": 24, "country": "KAZ",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.658, "rtpt_won": 0.328, "elo": 1955},
         "clay":  {"svpt_won": 0.635, "rtpt_won": 0.312, "elo": 1880},
         "grass": {"svpt_won": 0.668, "rtpt_won": 0.322, "elo": 1965},
     },
     "humbert": {
         "full_name": "Ugo Humbert", "hand": "L", "rank": 19, "country": "FRA",
+        "birth_year": 1998, "backhand": "2h",
         "hard":  {"svpt_won": 0.648, "rtpt_won": 0.355, "elo": 2005},
         "clay":  {"svpt_won": 0.632, "rtpt_won": 0.342, "elo": 1945},
         "grass": {"svpt_won": 0.655, "rtpt_won": 0.348, "elo": 1990},
     },
     "jarry": {
         "full_name": "Nicolas Jarry", "hand": "R", "rank": 28, "country": "CHI",
+        "birth_year": 1995, "backhand": "2h",
         "hard":  {"svpt_won": 0.648, "rtpt_won": 0.332, "elo": 1935},
         "clay":  {"svpt_won": 0.645, "rtpt_won": 0.338, "elo": 1955},
         "grass": {"svpt_won": 0.645, "rtpt_won": 0.325, "elo": 1905},
     },
     "cobolli": {
         "full_name": "Flavio Cobolli", "hand": "R", "rank": 30, "country": "ITA",
+        "birth_year": 2002, "backhand": "2h",
         "hard":  {"svpt_won": 0.628, "rtpt_won": 0.335, "elo": 1930},
         "clay":  {"svpt_won": 0.635, "rtpt_won": 0.342, "elo": 1965},
         "grass": {"svpt_won": 0.625, "rtpt_won": 0.325, "elo": 1885},
@@ -207,102 +316,119 @@ ATP_STATS: Dict[str, dict] = {
 WTA_STATS: Dict[str, dict] = {
     "swiatek": {
         "full_name": "Iga Swiatek", "hand": "R", "rank": 2, "country": "POL",
+        "birth_year": 2001, "backhand": "2h",
         "hard":  {"svpt_won": 0.580, "rtpt_won": 0.440, "elo": 2250},
         "clay":  {"svpt_won": 0.590, "rtpt_won": 0.455, "elo": 2355},
         "grass": {"svpt_won": 0.568, "rtpt_won": 0.418, "elo": 2120},
     },
     "sabalenka": {
         "full_name": "Aryna Sabalenka", "hand": "R", "rank": 1, "country": "BLR",
+        "birth_year": 1998, "backhand": "2h",
         "hard":  {"svpt_won": 0.598, "rtpt_won": 0.418, "elo": 2215},
         "clay":  {"svpt_won": 0.582, "rtpt_won": 0.408, "elo": 2120},
         "grass": {"svpt_won": 0.595, "rtpt_won": 0.405, "elo": 2145},
     },
     "gauff": {
         "full_name": "Coco Gauff", "hand": "R", "rank": 3, "country": "USA",
+        "birth_year": 2004, "backhand": "2h",
         "hard":  {"svpt_won": 0.578, "rtpt_won": 0.415, "elo": 2125},
         "clay":  {"svpt_won": 0.572, "rtpt_won": 0.412, "elo": 2090},
         "grass": {"svpt_won": 0.565, "rtpt_won": 0.400, "elo": 2055},
     },
     "rybakina": {
         "full_name": "Elena Rybakina", "hand": "R", "rank": 7, "country": "KAZ",
+        "birth_year": 1999, "backhand": "2h",
         "hard":  {"svpt_won": 0.595, "rtpt_won": 0.408, "elo": 2155},
         "clay":  {"svpt_won": 0.578, "rtpt_won": 0.398, "elo": 2075},
         "grass": {"svpt_won": 0.605, "rtpt_won": 0.408, "elo": 2175},
     },
     "pegula": {
         "full_name": "Jessica Pegula", "hand": "R", "rank": 6, "country": "USA",
+        "birth_year": 1994, "backhand": "2h",
         "hard":  {"svpt_won": 0.572, "rtpt_won": 0.405, "elo": 2070},
         "clay":  {"svpt_won": 0.558, "rtpt_won": 0.392, "elo": 1985},
         "grass": {"svpt_won": 0.560, "rtpt_won": 0.388, "elo": 1985},
     },
     "keys": {
         "full_name": "Madison Keys", "hand": "R", "rank": 5, "country": "USA",
+        "birth_year": 1995, "backhand": "2h",
         "hard":  {"svpt_won": 0.582, "rtpt_won": 0.395, "elo": 2065},
         "clay":  {"svpt_won": 0.565, "rtpt_won": 0.378, "elo": 1985},
         "grass": {"svpt_won": 0.580, "rtpt_won": 0.380, "elo": 2020},
     },
     "zheng": {
         "full_name": "Qinwen Zheng", "hand": "R", "rank": 8, "country": "CHN",
+        "birth_year": 2002, "backhand": "2h",
         "hard":  {"svpt_won": 0.575, "rtpt_won": 0.400, "elo": 2060},
         "clay":  {"svpt_won": 0.568, "rtpt_won": 0.395, "elo": 2035},
         "grass": {"svpt_won": 0.565, "rtpt_won": 0.385, "elo": 2005},
     },
     "paolini": {
         "full_name": "Jasmine Paolini", "hand": "R", "rank": 4, "country": "ITA",
+        "birth_year": 1996, "backhand": "2h",
         "hard":  {"svpt_won": 0.562, "rtpt_won": 0.402, "elo": 2050},
         "clay":  {"svpt_won": 0.568, "rtpt_won": 0.410, "elo": 2090},
         "grass": {"svpt_won": 0.555, "rtpt_won": 0.388, "elo": 2010},
     },
     "navarro": {
         "full_name": "Emma Navarro", "hand": "R", "rank": 9, "country": "USA",
+        "birth_year": 2001, "backhand": "2h",
         "hard":  {"svpt_won": 0.562, "rtpt_won": 0.395, "elo": 2020},
         "clay":  {"svpt_won": 0.552, "rtpt_won": 0.382, "elo": 1965},
         "grass": {"svpt_won": 0.568, "rtpt_won": 0.392, "elo": 2025},
     },
     "krejcikova": {
         "full_name": "Barbora Krejcikova", "hand": "R", "rank": 10, "country": "CZE",
+        "birth_year": 1996, "backhand": "1h",
         "hard":  {"svpt_won": 0.555, "rtpt_won": 0.388, "elo": 1975},
         "clay":  {"svpt_won": 0.565, "rtpt_won": 0.400, "elo": 2025},
         "grass": {"svpt_won": 0.568, "rtpt_won": 0.395, "elo": 2030},
     },
     "sakkari": {
         "full_name": "Maria Sakkari", "hand": "R", "rank": 12, "country": "GRE",
+        "birth_year": 1995, "backhand": "2h",
         "hard":  {"svpt_won": 0.562, "rtpt_won": 0.385, "elo": 2000},
         "clay":  {"svpt_won": 0.558, "rtpt_won": 0.382, "elo": 1990},
         "grass": {"svpt_won": 0.555, "rtpt_won": 0.370, "elo": 1955},
     },
     "kasatkina": {
         "full_name": "Daria Kasatkina", "hand": "R", "rank": 15, "country": "RUS",
+        "birth_year": 1997, "backhand": "2h",
         "hard":  {"svpt_won": 0.555, "rtpt_won": 0.388, "elo": 1975},
         "clay":  {"svpt_won": 0.562, "rtpt_won": 0.395, "elo": 2005},
         "grass": {"svpt_won": 0.548, "rtpt_won": 0.375, "elo": 1935},
     },
     "kvitova": {
         "full_name": "Petra Kvitova", "hand": "L", "rank": 80, "country": "CZE",
+        "birth_year": 1990, "backhand": "2h",
         "hard":  {"svpt_won": 0.575, "rtpt_won": 0.378, "elo": 1955},
         "clay":  {"svpt_won": 0.558, "rtpt_won": 0.360, "elo": 1880},
         "grass": {"svpt_won": 0.590, "rtpt_won": 0.378, "elo": 2010},
     },
     "haddad_maia": {
         "full_name": "Beatriz Haddad Maia", "hand": "L", "rank": 24, "country": "BRA",
+        "birth_year": 1996, "backhand": "2h",
         "hard":  {"svpt_won": 0.552, "rtpt_won": 0.378, "elo": 1935},
         "clay":  {"svpt_won": 0.562, "rtpt_won": 0.392, "elo": 1985},
         "grass": {"svpt_won": 0.548, "rtpt_won": 0.368, "elo": 1900},
     },
     "kostyuk": {
         "full_name": "Marta Kostyuk", "hand": "R", "rank": 22, "country": "UKR",
+        "birth_year": 2002, "backhand": "2h",
         "hard":  {"svpt_won": 0.562, "rtpt_won": 0.385, "elo": 1975},
         "clay":  {"svpt_won": 0.552, "rtpt_won": 0.378, "elo": 1940},
         "grass": {"svpt_won": 0.558, "rtpt_won": 0.375, "elo": 1945},
     },
     "bencic": {
         "full_name": "Belinda Bencic", "hand": "R", "rank": 45, "country": "SUI",
+        "birth_year": 1997, "backhand": "1h",
         "hard":  {"svpt_won": 0.558, "rtpt_won": 0.385, "elo": 1965},
         "clay":  {"svpt_won": 0.548, "rtpt_won": 0.375, "elo": 1920},
         "grass": {"svpt_won": 0.555, "rtpt_won": 0.375, "elo": 1940},
     },
     "collins": {
         "full_name": "Danielle Collins", "hand": "R", "rank": 50, "country": "USA",
+        "birth_year": 1994, "backhand": "2h",
         "hard":  {"svpt_won": 0.568, "rtpt_won": 0.385, "elo": 1985},
         "clay":  {"svpt_won": 0.555, "rtpt_won": 0.372, "elo": 1935},
         "grass": {"svpt_won": 0.558, "rtpt_won": 0.365, "elo": 1920},
@@ -356,7 +482,8 @@ _LIVE_ELO:          Dict[str, dict]  = {}
 _LIVE_FORM:         Dict[str, float] = {}
 _RECENT_STATS:      Dict[str, dict]  = {}
 _INJURIES:          Dict[str, str]   = {}
-_SACKMANN_PROFILES: Dict[str, dict]  = {}  # player_key → rolling form/fatigue profile
+_SACKMANN_PROFILES: Dict[str, dict]  = {}
+_ODDS_PREV:         Dict[str, dict]  = {}  # previous run odds for movement detection
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MARKOV CHAIN TENNIS MODEL
@@ -482,7 +609,7 @@ def h2h_adj(p1: str, p2: str) -> float:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FATIGUE & HOLD/BREAK MODELS (new in v2)
+# FATIGUE & HOLD/BREAK MODELS
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fatigue_score(days_rest: int, prev_minutes: float, sets_played: int) -> float:
@@ -513,6 +640,271 @@ def hold_break_win_prob(hold1: float, break1: float,
     dom1 = (hold1 + break1) / 2.0
     dom2 = (hold2 + break2) / 2.0
     return dom1 / (dom1 + dom2) if (dom1 + dom2) > 1e-9 else 0.5
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADVANCED ADJUSTMENT FUNCTIONS  (v3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_court_speed_adj(sport_key: str, tournament: str = "") -> float:
+    """Additive boost/penalty to svpt_won for court speed / indoor."""
+    t = (sport_key + " " + tournament).lower()
+    base = 0.0
+    if any(x in t for x in INDOOR_TOURNAMENTS):
+        base += 0.012
+    for name, adj in COURT_SPEED_ADJ.items():
+        if name in t:
+            base += adj
+            break
+    return max(-0.025, min(0.025, base))
+
+
+def age_fatigue_mult(player_key: str) -> float:
+    """Players over 28 accumulate fatigue faster; returns multiplier >= 1.0."""
+    all_players = {**ATP_STATS, **WTA_STATS}
+    by = all_players.get(player_key, {}).get("birth_year")
+    if not by:
+        return 1.0
+    age = datetime.datetime.utcnow().year - by
+    if age <= 28:
+        return 1.0
+    return min(1.6, 1.0 + (age - 28) * AGE_FATIGUE_SCALE)
+
+
+def lefty_matchup_adj(p1_key: str, p2_key: str, surface: str) -> float:
+    """Serve point bonus when left-hander serves against right-hander."""
+    all_players = {**ATP_STATS, **WTA_STATS}
+    h1 = all_players.get(p1_key, {}).get("hand", "R")
+    h2 = all_players.get(p2_key, {}).get("hand", "R")
+    if h1 == h2:
+        return 0.0
+    bonus = LEFTY_SERVE_BONUS
+    if surface == "grass":
+        bonus += LEFTY_GRASS_EXTRA
+    return bonus if h1 == "L" else -bonus
+
+
+def backhand_matchup_adj(p1_key: str, p2_key: str, surface: str) -> float:
+    """1h backhand vulnerability vs heavy lefty topspin on clay."""
+    if surface != "clay":
+        return 0.0
+    all_players = {**ATP_STATS, **WTA_STATS}
+    bh1 = all_players.get(p1_key, {}).get("backhand", "2h")
+    bh2 = all_players.get(p2_key, {}).get("backhand", "2h")
+    h1  = all_players.get(p1_key, {}).get("hand", "R")
+    h2  = all_players.get(p2_key, {}).get("hand", "R")
+    adj = 0.0
+    if bh1 == "1h" and h2 == "L":
+        adj -= BH_TOPSPIN_VULN
+    if bh2 == "1h" and h1 == "L":
+        adj += BH_TOPSPIN_VULN
+    return adj
+
+
+def clutch_adj(p1_key: str, p2_key: str) -> float:
+    """Tiebreak + break point save + deciding set record."""
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
+    adj   = 0.0
+    tb1 = prof1.get("tb_win_pct");  tb2 = prof2.get("tb_win_pct")
+    if tb1 is not None and tb2 is not None:
+        adj += (tb1 - tb2) * 0.10
+    bp1 = prof1.get("bp_save_pct"); bp2 = prof2.get("bp_save_pct")
+    if bp1 is not None and bp2 is not None:
+        adj += (bp1 - bp2) * 0.06
+    dc1 = prof1.get("deciding_pct"); dc2 = prof2.get("deciding_pct")
+    if dc1 is not None and dc2 is not None:
+        adj += (dc1 - dc2) * 0.06
+    return max(-0.07, min(0.07, adj))
+
+
+def df_penalty_adj(p1_key: str, p2_key: str, is_wta: bool) -> float:
+    """Double fault rate differential; more impact in WTA."""
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
+    df1 = prof1.get("df_rate"); df2 = prof2.get("df_rate")
+    if df1 is None or df2 is None:
+        return 0.0
+    scale = 0.35 if is_wta else 0.22
+    return max(-0.04, min(0.04, (df2 - df1) * scale))
+
+
+def surface_form_adj(p1_key: str, p2_key: str, surface: str) -> float:
+    """Surface-specific recent win rate differential."""
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
+    sf1 = prof1.get("surface_form", {}).get(surface)
+    sf2 = prof2.get("surface_form", {}).get(surface)
+    if sf1 is None or sf2 is None:
+        return 0.0
+    return max(-0.04, min(0.04, (sf1 - sf2) * 0.12))
+
+
+def ace_serve_adj(p1_key: str, p2_key: str) -> float:
+    """Ace rate differential as additional serve dominance signal."""
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
+    a1 = prof1.get("ace_rate"); a2 = prof2.get("ace_rate")
+    if a1 is None or a2 is None:
+        return 0.0
+    return max(-0.025, min(0.025, (a1 - a2) * 0.40))
+
+
+def altitude_adj(tournament: str, surface: str) -> float:
+    """Higher altitude → ball travels faster; especially offsets clay slowness."""
+    t = tournament.lower().replace(" ", "_").replace("-", "_")
+    for city, alt_m in ALTITUDE_M.items():
+        if city in t:
+            if alt_m < 400:
+                return 0.0
+            base = min(0.020, (alt_m - 200) / 500 * 0.005)
+            return round(base * (1.5 if surface == "clay" else 1.0), 4)
+    return 0.0
+
+
+def fetch_wind(lat: float, lon: float) -> Optional[float]:
+    """Wind speed km/h via free Open-Meteo API."""
+    try:
+        r = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={"latitude": lat, "longitude": lon,
+                    "current": "wind_speed_10m,precipitation",
+                    "wind_speed_unit": "kmh", "forecast_days": 1},
+            timeout=6,
+        )
+        r.raise_for_status()
+        cur = r.json().get("current", {})
+        return cur.get("wind_speed_10m"), cur.get("precipitation", 0.0)
+    except Exception as e:
+        log.debug("fetch_wind (%s,%s): %s", lat, lon, e)
+        return None, 0.0
+
+
+def wind_adj(tournament: str, surface: str, p1_key: str, p2_key: str) -> Tuple[float, float]:
+    """
+    Wind penalises heavy topspin/clay-court baseline play.
+    Returns (prob_adj_for_p1, wind_kmh).
+    Only applied for outdoor clay/grass.
+    """
+    if surface not in ("clay", "grass"):
+        return 0.0, 0.0
+    coords = None
+    t = tournament.lower().replace(" ", "_").replace("-", "_")
+    for name, (lat, lon) in TOURNAMENT_COORDS.items():
+        if name in t or t in name:
+            coords = (lat, lon)
+            break
+    if not coords:
+        return 0.0, 0.0
+    wind, rain = fetch_wind(*coords)
+    if wind is None or wind < 15:
+        return 0.0, wind or 0.0
+    # Aggressive servers benefit more in wind; topspin players suffer
+    a1 = _SACKMANN_PROFILES.get(p1_key, {}).get("ace_rate") or 0.06
+    a2 = _SACKMANN_PROFILES.get(p2_key, {}).get("ace_rate") or 0.06
+    factor = min(0.030, (wind - 15) * 0.0012)
+    adj = (a1 - a2) * factor * 4.0
+    return max(-0.025, min(0.025, adj)), round(wind, 1)
+
+
+def win_streak_adj(p1_key: str, p2_key: str) -> float:
+    """Recent win/loss streak as momentum signal. ±3% max."""
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
+    s1 = prof1.get("win_streak", 0)
+    s2 = prof2.get("win_streak", 0)
+
+    def bonus(s: int) -> float:
+        if s >= 5:  return 0.030
+        if s >= 4:  return 0.022
+        if s >= 3:  return 0.015
+        if s <= -4: return -0.025
+        if s <= -3: return -0.015
+        return 0.0
+
+    return max(-0.04, min(0.04, bonus(s1) - bonus(s2)))
+
+
+def load_odds_prev() -> Dict[str, dict]:
+    try:
+        with open(ODDS_PREV_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_odds_prev(odds_map: Dict[str, dict]) -> None:
+    os.makedirs("docs", exist_ok=True)
+    try:
+        snapshot = {k: {"best_home": v["best_home"], "best_away": v["best_away"]}
+                    for k, v in odds_map.items()}
+        with open(ODDS_PREV_PATH, "w") as f:
+            json.dump(snapshot, f)
+    except Exception as e:
+        log.warning("save_odds_prev: %s", e)
+
+
+def odds_move_signal(key: str, odds_info: dict,
+                     prev: Dict[str, dict]) -> Tuple[float, str]:
+    """
+    Detect significant odds movement (sharp money indicator).
+    Returns (prob_adj_for_home, label).
+    """
+    if key not in prev:
+        return 0.0, ""
+    ph = prev[key].get("best_home", odds_info["best_home"])
+    pa = prev[key].get("best_away", odds_info["best_away"])
+    ch = odds_info["best_home"]
+    ca = odds_info["best_away"]
+
+    def to_p(o: float) -> float:
+        return 1.0 / o if o > 1.0 else 0.0
+
+    shift = to_p(ch) - to_p(ph)  # positive = home shorted (steam on home)
+    if abs(shift) < 0.025:
+        return 0.0, ""
+
+    label = "steam_home" if shift > 0 else "steam_away"
+    adj   = max(-0.04, min(0.04, shift * 0.40))
+    log.info("odds_move %s: shift=%+.3f -> %s adj=%+.4f", key, shift, label, adj)
+    return adj, label
+
+
+def detect_injuries(all_matches: List[dict]) -> set:
+    """
+    Scan last 14 days for RET/W/O results to flag potentially injured players.
+    """
+    cutoff  = datetime.datetime.utcnow() - datetime.timedelta(days=14)
+    injured: set = set()
+    for row in all_matches:
+        try:
+            md = datetime.datetime.strptime(
+                str(row.get("tourney_date", "19000101")), "%Y%m%d")
+        except ValueError:
+            continue
+        if md < cutoff:
+            continue
+        score = (row.get("score") or "").upper()
+        if "RET" not in score and "W/O" not in score:
+            continue
+        loser = (row.get("loser_name") or "").lower()
+        if loser:
+            key = norm_player(loser)
+            all_db = {**ATP_STATS, **WTA_STATS}
+            if key in all_db:
+                injured.add(key)
+                log.info("auto-injury: %s (%s)", key, row.get("loser_name"))
+    return injured
+
+
+def extract_tournament(sport_key: str, game: dict) -> str:
+    """Derive a normalised tournament name from sport_key / sport_title."""
+    sk = sport_key.lower()
+    for token in ("french_open", "wimbledon", "us_open", "australian_open"):
+        if token in sk:
+            return token
+    title = game.get("sport_title", "").lower()
+    return title.replace(" ", "_").replace("-", "_")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -583,7 +975,6 @@ def get_surface_stats(key: str, surface: str) -> dict:
     live_elo = _LIVE_ELO.get(key, {}).get(surf)
     if live_elo:
         base["elo"] = live_elo
-    # Blend in Sackmann rolling stats (50/50) if available
     rec = _RECENT_STATS.get(key, {})
     if rec.get("svpt_won"):
         base["svpt_won"] = base["svpt_won"] * 0.5 + rec["svpt_won"] * 0.5
@@ -619,7 +1010,7 @@ def infer_tour_level(sport_key: str, tournament: str = "") -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# JEFF SACKMANN DATA — ROLLING FORM + FATIGUE (new in v2)
+# JEFF SACKMANN DATA — ROLLING FORM + FATIGUE + ADVANCED STATS
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _calc_svpt_won(row: dict, prefix: str = "w") -> Optional[float]:
@@ -641,16 +1032,15 @@ def _calc_svpt_won(row: dict, prefix: str = "w") -> Optional[float]:
 
 def _name_matches(csv_name: str, full_name: str) -> bool:
     """Check if a Sackmann CSV 'First Last' name matches our full_name."""
-    cl     = csv_name.lower().strip()
-    parts  = full_name.lower().split()
+    cl    = csv_name.lower().strip()
+    parts = full_name.lower().split()
     if not parts or not cl:
         return False
     last = parts[-1]
     if last not in cl:
         return False
-    # Require first-initial check for short/common surnames
     if len(last) < 6:
-        first = parts[0][0] if parts[0] else ""
+        first     = parts[0][0] if parts[0] else ""
         csv_parts = cl.split()
         csv_first = csv_parts[0][0] if csv_parts and csv_parts[0] else ""
         return first == csv_first
@@ -658,9 +1048,7 @@ def _name_matches(csv_name: str, full_name: str) -> bool:
 
 
 def fetch_sackmann_matches(year: int = None) -> List[dict]:
-    """Download ATP + WTA match CSVs from Jeff Sackmann's GitHub.
-    Fetches current year; falls back to also include previous year if < 300 rows.
-    """
+    """Download ATP + WTA match CSVs. Falls back to prev year if < 300 rows."""
     if year is None:
         year = datetime.datetime.utcnow().year
     rows: List[dict] = []
@@ -678,7 +1066,6 @@ def fetch_sackmann_matches(year: int = None) -> List[dict]:
                 log.info("fetch_sackmann: %s_%d → %d rows", tour, y, len(batch))
             except Exception as e:
                 log.warning("fetch_sackmann %s_%d: %s", tour, y, e)
-        # Only go back a year if current year has too little data
         if y == year and year_rows >= 300:
             break
     return rows
@@ -686,7 +1073,7 @@ def fetch_sackmann_matches(year: int = None) -> List[dict]:
 
 def build_player_profile(all_matches: List[dict], full_name: str,
                          n: int = 20) -> Optional[dict]:
-    """Compute rolling serve/return/form/fatigue profile from last n matches."""
+    """Compute rolling serve/return/form/fatigue + advanced stats from last n matches."""
     player_rows: List[Tuple[dict, bool]] = []
     for row in all_matches:
         wname = row.get("winner_name", "")
@@ -703,17 +1090,30 @@ def build_player_profile(all_matches: List[dict], full_name: str,
     recent = player_rows[:n]
 
     sv_wons, rt_wons, results, mins_list, sets_list = [], [], [], [], []
+    df_list:  List[float] = []
+    ace_list: List[float] = []
+    tb_won, tb_total        = 0, 0
+    bp_saved, bp_faced      = 0, 0
+    dec_won, dec_total      = 0, 0
+    surface_res: Dict[str, List[int]] = {"hard": [], "clay": [], "grass": []}
+
+    def _sf(val) -> Optional[float]:
+        try:
+            v = float(val or 0)
+            return v if v > 0 else None
+        except (ValueError, TypeError):
+            return None
 
     for row, is_winner in recent:
         prefix     = "w" if is_winner else "l"
         opp_prefix = "l" if is_winner else "w"
 
-        sv = _calc_svpt_won(row, prefix)
+        sv     = _calc_svpt_won(row, prefix)
         rt_opp = _calc_svpt_won(row, opp_prefix)
         if sv is not None:
             sv_wons.append(sv)
         if rt_opp is not None:
-            rt_wons.append(1.0 - rt_opp)  # rtpt_won = 1 - opponent svpt_won
+            rt_wons.append(1.0 - rt_opp)
 
         results.append(1 if is_winner else 0)
 
@@ -725,15 +1125,51 @@ def build_player_profile(all_matches: List[dict], full_name: str,
             pass
 
         score = row.get("score", "") or ""
-        sets = len([s for s in score.split() if "-" in s])
-        sets_list.append(max(1, sets))
+        sets  = [s for s in score.split() if "-" in s and not s.startswith("RET")]
+        sets_list.append(max(1, len(sets)))
 
-    # Recency-weighted form rate
-    weights = [1.0 / (i + 1.0) for i in range(len(results))]
-    total_w = sum(weights)
+        svpt = _sf(row.get(f"{prefix}_svpt"))
+        df   = _sf(row.get(f"{prefix}_df"))
+        if df is not None and svpt and svpt >= 20:
+            df_list.append(df / svpt)
+
+        ace = _sf(row.get(f"{prefix}_ace"))
+        if ace is not None and svpt and svpt >= 20:
+            ace_list.append(ace / svpt)
+
+        for s in sets:
+            base = s.split("(")[0]
+            if base == "7-6":
+                tb_total += 1
+                if is_winner:
+                    tb_won += 1
+            elif base == "6-7":
+                tb_total += 1
+                if not is_winner:
+                    tb_won += 1
+
+        try:
+            bpf = int(row.get(f"{prefix}_bpFaced") or 0)
+            bps = int(row.get(f"{prefix}_bpSaved") or 0)
+            if bpf > 0:
+                bp_faced += bpf
+                bp_saved += bps
+        except (ValueError, TypeError):
+            pass
+
+        if len(sets) >= 3:
+            dec_total += 1
+            if is_winner:
+                dec_won += 1
+
+        surf_raw = (row.get("surface") or "hard").lower()
+        surf_key = surf_raw if surf_raw in surface_res else "hard"
+        surface_res[surf_key].append(1 if is_winner else 0)
+
+    weights   = [1.0 / (i + 1.0) for i in range(len(results))]
+    total_w   = sum(weights)
     form_rate = sum(r * w for r, w in zip(results, weights)) / total_w if total_w > 0 else 0.5
 
-    # Days since last match (for fatigue)
     last_date_str = recent[0][0].get("tourney_date", "") or ""
     days_rest = 3
     if len(last_date_str) == 8:
@@ -747,6 +1183,21 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         except ValueError:
             pass
 
+    surf_form = {
+        s: round(sum(v) / len(v), 4)
+        for s, v in surface_res.items() if len(v) >= 3
+    }
+
+    # Win streak: positive = consecutive wins, negative = consecutive losses
+    win_streak = 0
+    if results:
+        direction = results[0]  # 1=win, 0=loss
+        for r in results:
+            if r == direction:
+                win_streak += 1 if direction else -1
+            else:
+                break
+
     return {
         "svpt_won":     round(sum(sv_wons) / len(sv_wons), 4) if sv_wons else None,
         "rtpt_won":     round(sum(rt_wons) / len(rt_wons), 4) if rt_wons else None,
@@ -754,13 +1205,22 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         "n_matches":    len(recent),
         "days_rest":    days_rest,
         "last_minutes": mins_list[0] if mins_list else 90.0,
+        "avg_minutes":  round(sum(mins_list) / len(mins_list), 1) if mins_list else 90.0,
         "last_sets":    sets_list[0] if sets_list else 3,
+        "df_rate":      round(sum(df_list)  / len(df_list),  5) if df_list  else None,
+        "ace_rate":     round(sum(ace_list) / len(ace_list), 5) if ace_list else None,
+        "tb_win_pct":   round(tb_won / tb_total, 4) if tb_total >= 3 else None,
+        "bp_save_pct":  round(bp_saved / bp_faced, 4) if bp_faced >= 5 else None,
+        "deciding_pct": round(dec_won / dec_total, 4) if dec_total >= 3 else None,
+        "surface_form": surf_form,
+        "win_streak":   win_streak,
     }
 
 
-def load_sackmann_data() -> None:
-    """Fetch Sackmann CSVs and populate _SACKMANN_PROFILES + _RECENT_STATS."""
-    all_matches = fetch_sackmann_matches()
+def load_sackmann_data(all_matches: Optional[List[dict]] = None) -> None:
+    """Populate _SACKMANN_PROFILES + _RECENT_STATS from Sackmann CSV data."""
+    if all_matches is None:
+        all_matches = fetch_sackmann_matches()
     if not all_matches:
         log.warning("load_sackmann_data: no match data — using static stats only")
         return
@@ -783,96 +1243,141 @@ def load_sackmann_data() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PREDICTION ENGINE  (v2 — 6-factor model)
+# PREDICTION ENGINE  (v3 — 9-factor model)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def predict(p1_key: str, p2_key: str, surface: str,
-            tour_level: str = "atp250", best_of: int = 3) -> dict:
+            tour_level: str = "atp250", best_of: int = 3,
+            sport_key: str = "", tournament: str = "") -> dict:
     """
-    Base probability: 35% Surface ELO + 35% Markov Chain + 30% Hold/Break
-    Adjustments:      fatigue ±8%  |  form ±5%  |  H2H ±5%
+    Base: 25% Surface ELO + 25% Markov + 20% H/B + 30% Advanced (DF-adjusted H/B)
+    Adj:  fatigue(age-weighted) | surface-form | H2H | clutch | DF | lefty | backhand
+          altitude | wind | win-streak
     """
     surf_adj = SURFACE_PT_ADJ.get(surface, 0.0)
-    # get_surface_stats already blends static + _RECENT_STATS (from Sackmann)
+    is_wta   = "wta" in sport_key.lower() or "wta" in tour_level.lower()
+
     s1 = get_surface_stats(p1_key, surface)
     s2 = get_surface_stats(p2_key, surface)
 
-    # Sackmann profiles supply fatigue & form; serve stats already in s1/s2
     prof1 = _SACKMANN_PROFILES.get(p1_key, {})
     prof2 = _SACKMANN_PROFILES.get(p2_key, {})
 
-    # Effective serve win probability (Markov input)
-    p1_sv = max(0.50, min(0.78, 0.5 * (s1["svpt_won"] + 1.0 - s2["rtpt_won"]) + surf_adj))
-    p2_sv = max(0.50, min(0.78, 0.5 * (s2["svpt_won"] + 1.0 - s1["rtpt_won"]) + surf_adj))
+    cs_adj   = get_court_speed_adj(sport_key, tournament)
+    lefty_sv = lefty_matchup_adj(p1_key, p2_key, surface)
 
-    # === Model 1: Markov Chain (35%) ===
+    p1_sv = max(0.50, min(0.78,
+        0.5 * (s1["svpt_won"] + 1.0 - s2["rtpt_won"]) + surf_adj + cs_adj + lefty_sv))
+    p2_sv = max(0.50, min(0.78,
+        0.5 * (s2["svpt_won"] + 1.0 - s1["rtpt_won"]) + surf_adj + cs_adj - lefty_sv))
+
     markov_p1 = match_win_prob(p1_sv, p2_sv, best_of=best_of)
+    elo_p1    = elo_win_prob(s1.get("elo", 1800), s2.get("elo", 1800))
 
-    # === Model 2: Surface ELO (35%) ===
-    elo_p1 = elo_win_prob(s1.get("elo", 1800), s2.get("elo", 1800))
-
-    # === Model 3: Hold / Break Dominance (30%) ===
-    # hold = P(player wins serving game); break = P(player wins return game)
-    hold1  = game_win_prob(max(0.50, min(0.80, s1["svpt_won"] + surf_adj)))
-    hold2  = game_win_prob(max(0.50, min(0.80, s2["svpt_won"] + surf_adj)))
+    hold1  = game_win_prob(max(0.50, min(0.80, s1["svpt_won"] + surf_adj + cs_adj)))
+    hold2  = game_win_prob(max(0.50, min(0.80, s2["svpt_won"] + surf_adj + cs_adj)))
     break1 = game_win_prob(max(0.30, min(0.65, s1["rtpt_won"] - surf_adj)))
     break2 = game_win_prob(max(0.30, min(0.65, s2["rtpt_won"] - surf_adj)))
     hb_p1  = hold_break_win_prob(hold1, break1, hold2, break2)
 
-    raw_prob = 0.35 * elo_p1 + 0.35 * markov_p1 + 0.30 * hb_p1
+    df1 = prof1.get("df_rate") or 0.04
+    df2 = prof2.get("df_rate") or 0.04
+    hold1_df = game_win_prob(max(0.50, min(0.80,
+        s1["svpt_won"] * (1.0 - df1 * 1.5) + surf_adj + cs_adj)))
+    hold2_df = game_win_prob(max(0.50, min(0.80,
+        s2["svpt_won"] * (1.0 - df2 * 1.5) + surf_adj + cs_adj)))
+    adv_p1 = hold_break_win_prob(hold1_df, break1, hold2_df, break2)
 
-    # === Fatigue Adjustment (additive, ±8%) ===
+    raw_prob = 0.25 * elo_p1 + 0.25 * markov_p1 + 0.20 * hb_p1 + 0.30 * adv_p1
+
     fat1 = fatigue_score(
         prof1.get("days_rest", 3),
         float(prof1.get("last_minutes", 90)),
         int(prof1.get("last_sets", 3)),
-    )
+    ) * age_fatigue_mult(p1_key)
     fat2 = fatigue_score(
         prof2.get("days_rest", 3),
         float(prof2.get("last_minutes", 90)),
         int(prof2.get("last_sets", 3)),
-    )
-    fat_adj_val = (fat2 - fat1) * 0.015  # positive → p1 fresher
+    ) * age_fatigue_mult(p2_key)
+    fat_adj_val = max(-0.10, min(0.10, (fat2 - fat1) * 0.015))
 
-    # === Form Adjustment (additive, ±5%) ===
     form1_rate = prof1.get("form_rate", 0.5)
     form2_rate = prof2.get("form_rate", 0.5)
-    form_adj_val = (form1_rate - form2_rate) * 0.15
+    global_form = (form1_rate - form2_rate) * 0.15
+    surf_form   = surface_form_adj(p1_key, p2_key, surface)
+    form_adj_val = max(-0.05, min(0.05, global_form * 0.6 + surf_form * 0.4))
 
-    # === H2H Adjustment (additive, ±5%) ===
-    h2h_val = h2h_adj(p1_key, p2_key)
+    h2h_val    = h2h_adj(p1_key, p2_key)
+    clutch_val = clutch_adj(p1_key, p2_key)
+    df_val     = df_penalty_adj(p1_key, p2_key, is_wta)
+    bh_val     = backhand_matchup_adj(p1_key, p2_key, surface)
+    streak_val = win_streak_adj(p1_key, p2_key)
+
+    alt_adj    = altitude_adj(tournament, surface)
+    # altitude shifts serve probability directly (same direction for both)
+    p1_sv = max(0.50, min(0.78, p1_sv + alt_adj))
+    p2_sv = max(0.50, min(0.78, p2_sv + alt_adj))
+
+    wind_val, wind_kmh = wind_adj(tournament, surface, p1_key, p2_key)
 
     blend = max(0.05, min(0.95,
-                          raw_prob + fat_adj_val + form_adj_val + h2h_val))
+        raw_prob + fat_adj_val + form_adj_val + h2h_val + clutch_val
+        + df_val + bh_val + streak_val + wind_val
+    ))
+
     exp_g = expected_total_games(p1_sv, p2_sv, best_of=best_of)
 
     log.info(
-        "predict %s vs %s [%s] markov=%.3f elo=%.3f hb=%.3f raw=%.3f "
-        "fat=%+.3f form=%+.3f h2h=%+.3f → %.3f exp_g=%.1f",
-        p1_key, p2_key, surface,
-        markov_p1, elo_p1, hb_p1, raw_prob,
-        fat_adj_val, form_adj_val, h2h_val, blend, exp_g,
+        "predict %s vs %s [%s%s] ELO=%.3f MC=%.3f HB=%.3f ADV=%.3f raw=%.3f "
+        "fat=%+.3f frm=%+.3f h2h=%+.3f clch=%+.3f df=%+.3f bh=%+.3f "
+        "streak=%+.3f wind=%+.3f alt=%.3f -> %.3f",
+        p1_key, p2_key, surface, " indoor" if cs_adj > 0.01 else "",
+        elo_p1, markov_p1, hb_p1, adv_p1, raw_prob,
+        fat_adj_val, form_adj_val, h2h_val, clutch_val, df_val, bh_val,
+        streak_val, wind_val, alt_adj, blend,
     )
 
     return {
-        "blend_p1":       round(blend, 4),
-        "model_p1":       round(markov_p1, 4),
-        "elo_p1":         round(elo_p1, 4),
-        "hb_p1":          round(hb_p1, 4),
-        "h2h_adj":        round(h2h_val, 4),
-        "fat_adj":        round(fat_adj_val, 4),
-        "form_adj":       round(form_adj_val, 4),
-        "p1_sv":          round(p1_sv, 4),
-        "p2_sv":          round(p2_sv, 4),
-        "elo1":           s1.get("elo", 1800),
-        "elo2":           s2.get("elo", 1800),
-        "fatigue1":       round(fat1, 1),
-        "fatigue2":       round(fat2, 1),
-        "form1":          round(form1_rate, 3),
-        "form2":          round(form2_rate, 3),
-        "expected_games": round(exp_g, 1),
-        "best_of":        best_of,
-        "surface":        surface,
+        "blend_p1":        round(blend, 4),
+        "model_p1":        round(markov_p1, 4),
+        "elo_p1":          round(elo_p1, 4),
+        "hb_p1":           round(hb_p1, 4),
+        "adv_p1":          round(adv_p1, 4),
+        "h2h_adj":         round(h2h_val, 4),
+        "fat_adj":         round(fat_adj_val, 4),
+        "form_adj":        round(form_adj_val, 4),
+        "clutch_adj":      round(clutch_val, 4),
+        "df_adj":          round(df_val, 4),
+        "lefty_adj":       round(lefty_sv, 4),
+        "backhand_adj":    round(bh_val, 4),
+        "p1_sv":           round(p1_sv, 4),
+        "p2_sv":           round(p2_sv, 4),
+        "elo1":            s1.get("elo", 1800),
+        "elo2":            s2.get("elo", 1800),
+        "fatigue1":        round(fat1, 1),
+        "fatigue2":        round(fat2, 1),
+        "form1":           round(form1_rate, 3),
+        "form2":           round(form2_rate, 3),
+        "tb_win1":         round(prof1.get("tb_win_pct") or 0.5, 3),
+        "tb_win2":         round(prof2.get("tb_win_pct") or 0.5, 3),
+        "bp_save1":        round(prof1.get("bp_save_pct") or 0.60, 3),
+        "bp_save2":        round(prof2.get("bp_save_pct") or 0.60, 3),
+        "df_rate1":        round(df1, 4),
+        "df_rate2":        round(df2, 4),
+        "ace_rate1":       round(prof1.get("ace_rate") or 0.06, 4),
+        "ace_rate2":       round(prof2.get("ace_rate") or 0.06, 4),
+        "expected_games":  round(exp_g, 1),
+        "best_of":         best_of,
+        "surface":         surface,
+        "court_speed_adj": round(cs_adj, 4),
+        "altitude_adj":    round(alt_adj, 4),
+        "wind_adj":        round(wind_val, 4),
+        "wind_kmh":        round(wind_kmh, 1),
+        "streak_adj":      round(streak_val, 4),
+        "win_streak1":     prof1.get("win_streak", 0),
+        "win_streak2":     prof2.get("win_streak", 0),
+        "is_wta":          is_wta,
     }
 
 
@@ -969,7 +1474,7 @@ def fetch_ta_elo() -> None:
             "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_players.csv",
             timeout=20)
         r.raise_for_status()
-        reader = csv.DictReader(io.StringIO(r.text))
+        reader  = csv.DictReader(io.StringIO(r.text))
         updated = 0
         for row in reader:
             name = ("%s %s" % (row.get("name_first", ""),
@@ -1010,9 +1515,12 @@ def kelly_stake(model_p: float, price: float, conf: float = 1.0) -> float:
     return max(KELLY_FLOOR, min(KELLY_MAX, stake))
 
 
-def generate_picks(matches: List[dict]) -> List[dict]:
-    picks = []
+def generate_picks(matches: List[dict],
+                   odds_prev: Optional[Dict[str, dict]] = None) -> List[dict]:
+    picks     = []
     daily_exp = 0.0
+    if odds_prev is None:
+        odds_prev = {}
 
     for m in matches:
         if daily_exp >= MAX_DAILY_EXP:
@@ -1026,6 +1534,12 @@ def generate_picks(matches: List[dict]) -> List[dict]:
         blend_p2 = 1.0 - blend_p1
         dv_p1    = odds_info["dv_p_home"]
         dv_p2    = odds_info["dv_p_away"]
+
+        # Odds movement signal (smart-money boost)
+        ok = "%s|%s" % (odds_info["home"].lower(), odds_info["away"].lower())
+        steam_adj, steam_label = odds_move_signal(ok, odds_info, odds_prev)
+        blend_p1 = max(0.05, min(0.95, blend_p1 + steam_adj))
+        blend_p2 = 1.0 - blend_p1
 
         edge1 = blend_p1 - dv_p1
         edge2 = blend_p2 - dv_p2
@@ -1044,57 +1558,76 @@ def generate_picks(matches: List[dict]) -> List[dict]:
         if p1_key in _INJURIES or p2_key in _INJURIES:
             continue
 
-        # 0.60→0.70  0.65→0.80  0.70→0.90  0.75+→1.0
         conf  = min(1.0, (model_p - MIN_CONF_ML) * 2.0 + 0.70)
         stake = kelly_stake(model_p, best_price, conf)
         stake = min(stake, MAX_DAILY_EXP - daily_exp)
         daily_exp += stake
 
         if edge >= 0.12:
-            star = "💎"; tier = "A"
+            star = "\U0001f48e"; tier = "A"
         elif edge >= 0.09:
             star = "⭐"; tier = "B"
         else:
             star = "•"; tier = "C"
 
-        surface_emoji = {"clay": "🟤", "grass": "🟢", "hard": "🔵"}.get(m["surface"], "⚪")
+        surface_emoji = {"clay": "\U0001f7e4", "grass": "\U0001f7e2", "hard": "\U0001f535"}.get(m["surface"], "⚪")
 
         picks.append({
-            "tier":          tier,
-            "star":          star,
-            "surface_emoji": surface_emoji,
-            "tour":          TOUR_META.get(m["tour_level"], {}).get("name", m["tour_level"]),
-            "tour_level":    m["tour_level"],
-            "surface":       m["surface"],
-            "p1":            odds_info["home"],
-            "p2":            odds_info["away"],
-            "p1_key":        p1_key,
-            "p2_key":        p2_key,
-            "bet_on":        bet_name,
-            "best_price":    round(best_price, 3),
-            "model_p":       round(model_p * 100, 1),
-            "dv_p":          round(dv_p * 100, 1),
-            "edge":          round(edge * 100, 1),
-            "conf":          round(conf * 100, 1),
-            "stake":         round(stake, 0),
-            "p1_sv_pct":     round(pred["p1_sv"] * 100, 1),
-            "p2_sv_pct":     round(pred["p2_sv"] * 100, 1),
-            "elo1":          pred["elo1"],
-            "elo2":          pred["elo2"],
+            "tier":           tier,
+            "star":           star,
+            "surface_emoji":  surface_emoji,
+            "tour":           TOUR_META.get(m["tour_level"], {}).get("name", m["tour_level"]),
+            "tour_level":     m["tour_level"],
+            "surface":        m["surface"],
+            "p1":             odds_info["home"],
+            "p2":             odds_info["away"],
+            "p1_key":         p1_key,
+            "p2_key":         p2_key,
+            "bet_on":         bet_name,
+            "best_price":     round(best_price, 3),
+            "model_p":        round(model_p * 100, 1),
+            "dv_p":           round(dv_p * 100, 1),
+            "edge":           round(edge * 100, 1),
+            "conf":           round(conf * 100, 1),
+            "stake":          round(stake, 0),
+            "p1_sv_pct":      round(pred["p1_sv"] * 100, 1),
+            "p2_sv_pct":      round(pred["p2_sv"] * 100, 1),
+            "elo1":           pred["elo1"],
+            "elo2":           pred["elo2"],
             "expected_games": pred["expected_games"],
-            "best_of":       pred["best_of"],
-            "h2h_adj":       round(pred["h2h_adj"] * 100, 1),
-            # v2 new fields
-            "hb_p1":         round(pred.get("hb_p1", 0.5) * 100, 1),
-            "form_adj":      round(pred.get("form_adj", 0.0) * 100, 1),
-            "fat_adj":       round(pred.get("fat_adj", 0.0) * 100, 1),
-            "fatigue1":      pred.get("fatigue1", 0.0),
-            "fatigue2":      pred.get("fatigue2", 0.0),
-            "form1":         round(pred.get("form1", 0.5) * 100, 1),
-            "form2":         round(pred.get("form2", 0.5) * 100, 1),
-            "commence":      odds_info.get("commence", ""),
+            "best_of":        pred["best_of"],
+            "h2h_adj":        round(pred["h2h_adj"] * 100, 1),
+            "hb_p1":          round(pred.get("hb_p1", 0.5) * 100, 1),
+            "form_adj":       round(pred.get("form_adj", 0.0) * 100, 1),
+            "fat_adj":        round(pred.get("fat_adj", 0.0) * 100, 1),
+            "fatigue1":       pred.get("fatigue1", 0.0),
+            "fatigue2":       pred.get("fatigue2", 0.0),
+            "form1":          round(pred.get("form1", 0.5) * 100, 1),
+            "form2":          round(pred.get("form2", 0.5) * 100, 1),
+            "commence":       odds_info.get("commence", ""),
+            "adv_p1":         round(pred.get("adv_p1", 0.5) * 100, 1),
+            "clutch_adj":     round(pred.get("clutch_adj", 0.0) * 100, 1),
+            "df_adj":         round(pred.get("df_adj", 0.0) * 100, 1),
+            "lefty_adj":      round(pred.get("lefty_adj", 0.0) * 100, 1),
+            "backhand_adj":   round(pred.get("backhand_adj", 0.0) * 100, 1),
+            "tb_win1":        round(pred.get("tb_win1", 0.5) * 100, 1),
+            "tb_win2":        round(pred.get("tb_win2", 0.5) * 100, 1),
+            "bp_save1":       round(pred.get("bp_save1", 0.6) * 100, 1),
+            "bp_save2":       round(pred.get("bp_save2", 0.6) * 100, 1),
+            "df_rate1":       round(pred.get("df_rate1", 0.04) * 100, 2),
+            "df_rate2":       round(pred.get("df_rate2", 0.04) * 100, 2),
+            "ace_rate1":      round(pred.get("ace_rate1", 0.06) * 100, 2),
+            "ace_rate2":      round(pred.get("ace_rate2", 0.06) * 100, 2),
+            "court_speed":    round(pred.get("court_speed_adj", 0.0) * 100, 2),
+            "altitude_adj":   round(pred.get("altitude_adj", 0.0) * 100, 2),
+            "wind_adj":       round(pred.get("wind_adj", 0.0) * 100, 2),
+            "wind_kmh":       pred.get("wind_kmh", 0.0),
+            "streak_adj":     round(pred.get("streak_adj", 0.0) * 100, 2),
+            "win_streak1":    pred.get("win_streak1", 0),
+            "win_streak2":    pred.get("win_streak2", 0),
+            "steam":          steam_label,
         })
-        log.info("  PICK %s %s vs %s → %s @%.2f model=%.1f%% edge=+%.1f%% $%.0f",
+        log.info("  PICK %s %s vs %s -> %s @%.2f model=%.1f%% edge=+%.1f%% $%.0f",
                  star, odds_info["home"], odds_info["away"],
                  bet_name, best_price, model_p * 100, edge * 100, stake)
 
@@ -1128,7 +1661,8 @@ def save_history(hist: dict) -> None:
         requests.patch(
             "https://api.github.com/gists/%s" % GIST_ID,
             headers={"Authorization": "token %s" % GIST_TOKEN},
-            json={"files": {"tennis_hist.json": {"content": json.dumps(hist, ensure_ascii=False, indent=2)}}},
+            json={"files": {"tennis_hist.json": {
+                "content": json.dumps(hist, ensure_ascii=False, indent=2)}}},
             timeout=15,
         )
     except Exception as e:
@@ -1173,18 +1707,31 @@ def send_ntfy(title: str, message: str) -> None:
 def send_discord(picks: List[dict], stats: dict) -> None:
     if not DISCORD_HOOK:
         return
-    now = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    lines = ["**🎾 ATP/WTA 每日預測 — %s**" % now.strftime("%Y-%m-%d %H:%M"), "```"]
+    now   = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    lines = ["**\U0001f3be ATP/WTA 每日預測 — %s**" % now.strftime("%Y-%m-%d %H:%M"), "```"]
     if not picks:
         lines.append("今日無符合條件的推薦")
     else:
         for p in picks:
-            lines.append("%s %s %s vs %s" % (p["star"], p["surface_emoji"], p["p1"], p["p2"]))
+            lines.append("%s %s %s vs %s" % (
+                p["star"], p["surface_emoji"], p["p1"], p["p2"]))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
                 p["bet_on"], p["best_price"], p["model_p"], p["edge"], p["stake"]))
-            if p.get("fat_adj", 0) or p.get("form_adj", 0):
-                lines.append("  體能:%+.1f%%  狀態:%+.1f%%  H/B:%.1f%%" % (
-                    p.get("fat_adj", 0), p.get("form_adj", 0), p.get("hb_p1", 50)))
+            parts = []
+            if p.get("fat_adj"):    parts.append("體能:%+.1f%%" % p["fat_adj"])
+            if p.get("form_adj"):   parts.append("狀態:%+.1f%%" % p["form_adj"])
+            if p.get("clutch_adj"): parts.append("心理:%+.1f%%" % p["clutch_adj"])
+            if p.get("df_adj"):     parts.append("雙誤:%+.1f%%" % p["df_adj"])
+            if p.get("lefty_adj"):  parts.append("左手:%+.1f%%" % p["lefty_adj"])
+            if p.get("streak_adj"): parts.append("連勝:%+.1f%%" % p["streak_adj"])
+            if p.get("wind_kmh", 0) > 15:
+                parts.append("風速:%.0fkm/h" % p["wind_kmh"])
+            if p.get("steam"):      parts.append("💰 %s" % p["steam"].replace("_", " "))
+            if parts:
+                lines.append("  " + "  ".join(parts))
+            lines.append("  搶七:%.0f%%/%.0f%%  破發救:%.0f%%/%.0f%%" % (
+                p.get("tb_win1", 50), p.get("tb_win2", 50),
+                p.get("bp_save1", 60), p.get("bp_save2", 60)))
     lines.append("```")
     if stats.get("settled", 0):
         lines.append("戰績: %d/%d (%.1f%%)  ROI: %.1f%%" % (
@@ -1203,14 +1750,14 @@ def write_json(picks: List[dict], stats: dict, history: dict,
                game_preds: dict, now: datetime.datetime) -> None:
     os.makedirs("docs", exist_ok=True)
     payload = {
-        "generated_at": now.strftime("%Y-%m-%d %H:%M") + " (台灣時間)",
-        "date":         now.strftime("%Y-%m-%d"),
-        "model_version": "v2.0 — 6-factor",
-        "stats":        stats,
-        "picks":        picks,
+        "generated_at":  now.strftime("%Y-%m-%d %H:%M") + " (台灣時間)",
+        "date":          now.strftime("%Y-%m-%d"),
+        "model_version": "v3.1 — 9-factor + steam/altitude/wind/streak/auto-injury",
+        "stats":         stats,
+        "picks":         picks,
         "recent_history": list(reversed(history.get("bets", [])[-10:])),
-        "live_matches": [],
-        "game_preds":   game_preds,
+        "live_matches":  [],
+        "game_preds":    game_preds,
     }
     with open(JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
@@ -1223,34 +1770,52 @@ def write_json(picks: List[dict], stats: dict, history: dict,
 
 def run() -> None:
     now_tw = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    log.info("=== Tennis Bot v2.0 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
+    log.info("=== Tennis Bot v3.1 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
 
-    fetch_ta_elo()       # static ELO override (no-op if CSV lacks elo column)
-    load_sackmann_data() # rolling form/fatigue from ATP+WTA match CSVs
+    fetch_ta_elo()
+    all_matches_raw = fetch_sackmann_matches()
+
+    load_sackmann_data(all_matches_raw)
+
+    # Auto-detect retired / injured players from recent Sackmann data
+    auto_inj = detect_injuries(all_matches_raw) if all_matches_raw else set()
+    _INJURIES.update(auto_inj)
+    if auto_inj:
+        log.info("Auto-flagged injuries/retirements: %s", auto_inj)
+
+    # Load previous odds snapshot for steam detection
+    odds_prev = load_odds_prev()
 
     raw_odds = fetch_odds()
     odds_map = parse_odds(raw_odds)
 
-    matches: List[dict] = []
+    # Save current odds for next-run comparison
+    save_odds_prev(odds_map)
+
+    matches:    List[dict]      = []
     game_preds: Dict[str, dict] = {}
 
     for key, odds_info in odds_map.items():
-        sport   = odds_info.get("sport", "tennis_atp")
-        surface = infer_surface(sport)
-        t_lvl   = infer_tour_level(sport)
-        best_of = TOUR_META.get(t_lvl, {}).get("best_of", 3)
+        sport      = odds_info.get("sport", "tennis_atp")
+        surface    = infer_surface(sport)
+        t_lvl      = infer_tour_level(sport)
+        best_of    = TOUR_META.get(t_lvl, {}).get("best_of", 3)
+        tournament = extract_tournament(sport, odds_info)
 
         p1_key = norm_player(odds_info["home"])
         p2_key = norm_player(odds_info["away"])
 
-        pred = predict(p1_key, p2_key, surface, t_lvl, best_of)
+        pred = predict(p1_key, p2_key, surface, t_lvl, best_of,
+                       sport_key=sport, tournament=tournament)
 
         game_preds[key] = {
             "p1": odds_info["home"], "p2": odds_info["away"],
             "p1_key": p1_key, "p2_key": p2_key,
-            "model_p1": pred["blend_p1"],
-            "surface": surface, "tour_level": t_lvl,
-            "best_of": best_of, "exp_games": pred["expected_games"],
+            "model_p1":   pred["blend_p1"],
+            "surface":    surface,
+            "tour_level": t_lvl,
+            "best_of":    best_of,
+            "exp_games":  pred["expected_games"],
         }
         matches.append({
             "p1_key": p1_key, "p2_key": p2_key,
@@ -1260,7 +1825,7 @@ def run() -> None:
 
     log.info("Processed %d matches", len(matches))
 
-    picks   = generate_picks(matches)
+    picks   = generate_picks(matches, odds_prev=odds_prev)
     history = load_history()
     stats   = compute_stats(history)
 
@@ -1268,7 +1833,7 @@ def run() -> None:
 
     if picks:
         send_ntfy(
-            "🎾 Tennis Picks — %s" % now_tw.strftime("%m/%d"),
+            "\U0001f3be Tennis Picks — %s" % now_tw.strftime("%m/%d"),
             "%d 個推薦\n" % len(picks) +
             "\n".join("• %s vs %s → %s @%.2f (+%.1f%%)" % (
                 p["p1"], p["p2"], p["bet_on"], p["best_price"], p["edge"]
