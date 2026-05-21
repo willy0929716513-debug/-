@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
 """
-Tennis Bot v1.0 — ATP/WTA 巡迴賽預測系統
-參考 mlb-predictor 架構，針對網球特性重新設計。
-
-核心模型：Markov Chain 發球/接球模型
-  p  = P(發球方贏得一分)
-  g  = P(發球方贏得一局)  ← 解析公式
-  s  = P(一方贏得一盤)   ← 動態規劃
-  m  = P(一方贏得比賽)   ← 遞迴
-
-資料來源：
-  - Tennis Abstract (Jeff Sackmann) — 歷史 ELO
-  - The Odds API — 即時賠率
-  - ntfy.sh — 推播通知
+Tennis Bot v2.0 — ATP/WTA 巡迴賽預測系統
+6因子模型：Surface ELO 35% + Markov Chain 35% + Hold/Break 30%
+附加調整：體能 ±8% | 近期狀態 ±5% | H2H ±5%
+資料來源：Jeff Sackmann ATP/WTA CSVs + The Odds API
 """
 
 import csv
@@ -46,17 +37,15 @@ GIST_ID       = os.environ.get("GIST_ID", "")
 
 JSON_PATH     = "docs/picks_latest.json"
 
-# Kelly criterion
 KELLY         = 0.25
 KELLY_MAX     = 200.0
 KELLY_FLOOR   = 50.0
 BANKROLL      = 1000.0
 MAX_DAILY_EXP = 500.0
 
-# Edge / confidence thresholds
-MIN_EDGE_ML   = 0.06   # 6 % for match winner
-MIN_CONF_ML   = 0.60   # model win prob floor
-MIN_BOOKS     = 3      # minimum books for odds reliability
+MIN_EDGE_ML   = 0.06
+MIN_CONF_ML   = 0.60
+MIN_BOOKS     = 3
 MAX_PICKS     = 6
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -321,7 +310,7 @@ WTA_STATS: Dict[str, dict] = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HEAD-TO-HEAD RECORDS (p1_key, p2_key) → (p1_wins, p2_wins)
+# HEAD-TO-HEAD RECORDS
 # ─────────────────────────────────────────────────────────────────────────────
 H2H: Dict[Tuple[str, str], Tuple[int, int]] = {
     ("djokovic",  "alcaraz"):   (2,  5),
@@ -342,15 +331,13 @@ H2H: Dict[Tuple[str, str], Tuple[int, int]] = {
     ("sabalenka", "keys"):      (6,  3),
 }
 
-# Surface serve-point probability shifts vs hard court baseline
 SURFACE_PT_ADJ: Dict[str, float] = {
-    "hard":   0.000,
-    "clay":  -0.020,   # Less serve-dominant
-    "grass": +0.022,   # More serve-dominant
+    "hard":    0.000,
+    "clay":   -0.020,
+    "grass":  +0.022,
     "carpet": +0.015,
 }
 
-# Tournament metadata
 TOUR_META: Dict[str, dict] = {
     "grand_slam":  {"name": "大滿貫",    "best_of": 5},
     "masters1000": {"name": "大師賽",    "best_of": 3},
@@ -365,19 +352,17 @@ TOUR_META: Dict[str, dict] = {
 # ─────────────────────────────────────────────────────────────────────────────
 # RUNTIME CACHES
 # ─────────────────────────────────────────────────────────────────────────────
-_LIVE_ELO:     Dict[str, dict]  = {}   # player_key → {surface: elo}
-_LIVE_FORM:    Dict[str, float] = {}   # player_key → multiplier (0.94–1.06)
-_RECENT_STATS: Dict[str, dict]  = {}   # player_key → {svpt_won, rtpt_won}
-_INJURIES:     Dict[str, str]   = {}   # player_key → note
+_LIVE_ELO:          Dict[str, dict]  = {}
+_LIVE_FORM:         Dict[str, float] = {}
+_RECENT_STATS:      Dict[str, dict]  = {}
+_INJURIES:          Dict[str, str]   = {}
+_SACKMANN_PROFILES: Dict[str, dict]  = {}  # player_key → rolling form/fatigue profile
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MARKOV CHAIN TENNIS MODEL
 # ─────────────────────────────────────────────────────────────────────────────
 
 def game_win_prob(p: float) -> float:
-    """P(server wins a game) given P(server wins a point) = p.
-    Closed-form including deuce series.
-    """
     q = 1.0 - p
     d = p * p + q * q
     if d < 1e-9:
@@ -389,15 +374,10 @@ def game_win_prob(p: float) -> float:
 
 
 def set_win_prob(p1_sv: float, p2_sv: float,
-                 first_server: int = 1, tiebreak: bool = True) -> float:
-    """P(player 1 wins a set) via dynamic programming.
-    p1_sv: P(p1 wins a point on their own serve)
-    p2_sv: P(p2 wins a point on their own serve)
-    """
+                first_server: int = 1, tiebreak: bool = True) -> float:
     g1 = game_win_prob(p1_sv)
     g2 = game_win_prob(p2_sv)
-    tb = (g1 + 1.0 - g2) / 2.0      # tiebreak approximation
-
+    tb = (g1 + 1.0 - g2) / 2.0
     memo: Dict[tuple, float] = {}
 
     def dp(s1: int, s2: int, srv: int) -> float:
@@ -420,7 +400,6 @@ def set_win_prob(p1_sv: float, p2_sv: float,
 
 
 def match_win_prob(p1_sv: float, p2_sv: float, best_of: int = 3) -> float:
-    """P(player 1 wins the match)."""
     need = (best_of + 1) // 2
     memo: Dict[tuple, float] = {}
 
@@ -443,7 +422,6 @@ def match_win_prob(p1_sv: float, p2_sv: float, best_of: int = 3) -> float:
 
 def expected_total_games(p1_sv: float, p2_sv: float,
                          best_of: int = 3, n: int = 4000) -> float:
-    """Monte Carlo estimate of expected total games in a match."""
     g1 = game_win_prob(p1_sv)
     g2 = game_win_prob(p2_sv)
     tb = (g1 + 1.0 - g2) / 2.0
@@ -482,7 +460,7 @@ def expected_total_games(p1_sv: float, p2_sv: float,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ELO MODEL (secondary)
+# ELO MODEL
 # ─────────────────────────────────────────────────────────────────────────────
 ELO_SCALE = 400.0
 
@@ -492,7 +470,6 @@ def elo_win_prob(elo1: float, elo2: float) -> float:
 
 
 def h2h_adj(p1: str, p2: str) -> float:
-    """Additive H2H adjustment to win probability, capped at ±5%."""
     w1, w2 = 0, 0
     if (p1, p2) in H2H:
         w1, w2 = H2H[(p1, p2)]
@@ -505,51 +482,85 @@ def h2h_adj(p1: str, p2: str) -> float:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# FATIGUE & HOLD/BREAK MODELS (new in v2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fatigue_score(days_rest: int, prev_minutes: float, sets_played: int) -> float:
+    """Return 0–10 fatigue score. Higher = more fatigued."""
+    score = 0.0
+    if days_rest == 0:
+        score += 4.0
+    elif days_rest == 1:
+        score += 2.5
+    elif days_rest == 2:
+        score += 1.0
+    elif days_rest >= 6:
+        score -= 1.0
+    if prev_minutes > 180:
+        score += 3.0
+    elif prev_minutes > 120:
+        score += 1.5
+    if sets_played >= 4:
+        score += 2.0
+    elif sets_played == 3:
+        score += 0.8
+    return max(0.0, min(10.0, score))
+
+
+def hold_break_win_prob(hold1: float, break1: float,
+                        hold2: float, break2: float) -> float:
+    """P(p1 wins) from dominance ratio of hold+break rates."""
+    dom1 = (hold1 + break1) / 2.0
+    dom2 = (hold2 + break2) / 2.0
+    return dom1 / (dom1 + dom2) if (dom1 + dom2) > 1e-9 else 0.5
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # PLAYER LOOKUP
 # ─────────────────────────────────────────────────────────────────────────────
 _ALIASES: Dict[str, str] = {
-    "novak djokovic":       "djokovic",
-    "carlos alcaraz":       "alcaraz",
-    "jannik sinner":        "sinner",
-    "daniil medvedev":      "medvedev",
-    "alexander zverev":     "zverev",
-    "andrey rublev":        "rublev",
-    "stefanos tsitsipas":   "tsitsipas",
-    "taylor fritz":         "fritz",
-    "alex de minaur":       "de_minaur",
-    "hubert hurkacz":       "hurkacz",
-    "grigor dimitrov":      "dimitrov",
-    "tommy paul":           "paul",
-    "felix auger-aliassime":"auger_aliassime",
-    "felix auger aliassime":"auger_aliassime",
-    "lorenzo musetti":      "musetti",
-    "frances tiafoe":       "tiafoe",
-    "matteo berrettini":    "berrettini",
-    "casper ruud":          "ruud",
-    "jack draper":          "draper",
-    "karen khachanov":      "khachanov",
-    "ben shelton":          "shelton",
-    "alexander bublik":     "bublik",
-    "ugo humbert":          "humbert",
-    "nicolas jarry":        "jarry",
-    "flavio cobolli":       "cobolli",
-    "iga swiatek":          "swiatek",
-    "aryna sabalenka":      "sabalenka",
-    "coco gauff":           "gauff",
-    "elena rybakina":       "rybakina",
-    "jessica pegula":       "pegula",
-    "madison keys":         "keys",
-    "qinwen zheng":         "zheng",
-    "jasmine paolini":      "paolini",
-    "emma navarro":         "navarro",
-    "barbora krejcikova":   "krejcikova",
-    "maria sakkari":        "sakkari",
-    "daria kasatkina":      "kasatkina",
-    "petra kvitova":        "kvitova",
-    "beatriz haddad maia":  "haddad_maia",
-    "marta kostyuk":        "kostyuk",
-    "belinda bencic":       "bencic",
-    "danielle collins":     "collins",
+    "novak djokovic":        "djokovic",
+    "carlos alcaraz":        "alcaraz",
+    "jannik sinner":         "sinner",
+    "daniil medvedev":       "medvedev",
+    "alexander zverev":      "zverev",
+    "andrey rublev":         "rublev",
+    "stefanos tsitsipas":    "tsitsipas",
+    "taylor fritz":          "fritz",
+    "alex de minaur":        "de_minaur",
+    "hubert hurkacz":        "hurkacz",
+    "grigor dimitrov":       "dimitrov",
+    "tommy paul":            "paul",
+    "felix auger-aliassime": "auger_aliassime",
+    "felix auger aliassime": "auger_aliassime",
+    "lorenzo musetti":       "musetti",
+    "frances tiafoe":        "tiafoe",
+    "matteo berrettini":     "berrettini",
+    "casper ruud":           "ruud",
+    "jack draper":           "draper",
+    "karen khachanov":       "khachanov",
+    "ben shelton":           "shelton",
+    "alexander bublik":      "bublik",
+    "ugo humbert":           "humbert",
+    "nicolas jarry":         "jarry",
+    "flavio cobolli":        "cobolli",
+    "iga swiatek":           "swiatek",
+    "aryna sabalenka":       "sabalenka",
+    "coco gauff":            "gauff",
+    "elena rybakina":        "rybakina",
+    "jessica pegula":        "pegula",
+    "madison keys":          "keys",
+    "qinwen zheng":          "zheng",
+    "jasmine paolini":       "paolini",
+    "emma navarro":          "navarro",
+    "barbora krejcikova":    "krejcikova",
+    "maria sakkari":         "sakkari",
+    "daria kasatkina":       "kasatkina",
+    "petra kvitova":         "kvitova",
+    "beatriz haddad maia":   "haddad_maia",
+    "marta kostyuk":         "kostyuk",
+    "belinda bencic":        "bencic",
+    "danielle collins":      "collins",
 }
 
 
@@ -567,17 +578,14 @@ def norm_player(name: str) -> str:
 def get_surface_stats(key: str, surface: str) -> dict:
     players = {**ATP_STATS, **WTA_STATS}
     surf = surface if surface in ("hard", "clay", "grass") else "hard"
-    base = players.get(key, {}).get(surf,
-           {"svpt_won": 0.620, "rtpt_won": 0.340, "elo": 1800})
-    # Apply live ELO override
+    base = dict(players.get(key, {}).get(surf,
+           {"svpt_won": 0.620, "rtpt_won": 0.340, "elo": 1800}))
     live_elo = _LIVE_ELO.get(key, {}).get(surf)
     if live_elo:
-        base = dict(base)
         base["elo"] = live_elo
-    # Blend in recent serve stats if available
+    # Blend in Sackmann rolling stats (50/50) if available
     rec = _RECENT_STATS.get(key, {})
     if rec.get("svpt_won"):
-        base = dict(base)
         base["svpt_won"] = base["svpt_won"] * 0.5 + rec["svpt_won"] * 0.5
         base["rtpt_won"] = base["rtpt_won"] * 0.5 + rec.get("rtpt_won", base["rtpt_won"]) * 0.5
     return base
@@ -611,47 +619,254 @@ def infer_tour_level(sport_key: str, tournament: str = "") -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PREDICTION ENGINE
+# JEFF SACKMANN DATA — ROLLING FORM + FATIGUE (new in v2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _calc_svpt_won(row: dict, prefix: str = "w") -> Optional[float]:
+    """Derive serve point win % from a Sackmann match CSV row."""
+    try:
+        svpt = float(row.get(f"{prefix}_svpt") or 0)
+        in1  = float(row.get(f"{prefix}_1stIn") or 0)
+        won1 = float(row.get(f"{prefix}_1stWon") or 0)
+        won2 = float(row.get(f"{prefix}_2ndWon") or 0)
+        if svpt < 20:
+            return None
+        fsp = in1 / svpt
+        fsw = won1 / in1 if in1 > 0 else 0.68
+        ssw = won2 / max(1.0, svpt - in1)
+        return fsp * fsw + (1.0 - fsp) * ssw
+    except (ValueError, ZeroDivisionError, TypeError):
+        return None
+
+
+def _name_matches(csv_name: str, full_name: str) -> bool:
+    """Check if a Sackmann CSV 'First Last' name matches our full_name."""
+    cl     = csv_name.lower().strip()
+    parts  = full_name.lower().split()
+    if not parts or not cl:
+        return False
+    last = parts[-1]
+    if last not in cl:
+        return False
+    # Require first-initial check for short/common surnames
+    if len(last) < 6:
+        first = parts[0][0] if parts[0] else ""
+        csv_parts = cl.split()
+        csv_first = csv_parts[0][0] if csv_parts and csv_parts[0] else ""
+        return first == csv_first
+    return True
+
+
+def fetch_sackmann_matches(year: int = None) -> List[dict]:
+    """Download ATP + WTA match CSVs from Jeff Sackmann's GitHub."""
+    if year is None:
+        year = datetime.datetime.utcnow().year
+    urls = [
+        f"https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_matches_{year}.csv",
+        f"https://raw.githubusercontent.com/JeffSackmann/tennis_wta/master/wta_matches_{year}.csv",
+    ]
+    rows: List[dict] = []
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=25)
+            r.raise_for_status()
+            batch = list(csv.DictReader(io.StringIO(r.text)))
+            rows.extend(batch)
+            log.info("fetch_sackmann: %s → %d rows", url.split("/")[-1], len(batch))
+        except Exception as e:
+            log.warning("fetch_sackmann %s: %s", url, e)
+    return rows
+
+
+def build_player_profile(all_matches: List[dict], full_name: str,
+                         n: int = 20) -> Optional[dict]:
+    """Compute rolling serve/return/form/fatigue profile from last n matches."""
+    player_rows: List[Tuple[dict, bool]] = []
+    for row in all_matches:
+        wname = row.get("winner_name", "")
+        lname = row.get("loser_name", "")
+        if _name_matches(wname, full_name):
+            player_rows.append((row, True))
+        elif _name_matches(lname, full_name):
+            player_rows.append((row, False))
+
+    if not player_rows:
+        return None
+
+    player_rows.sort(key=lambda x: x[0].get("tourney_date", "0"), reverse=True)
+    recent = player_rows[:n]
+
+    sv_wons, rt_wons, results, mins_list, sets_list = [], [], [], [], []
+
+    for row, is_winner in recent:
+        prefix     = "w" if is_winner else "l"
+        opp_prefix = "l" if is_winner else "w"
+
+        sv = _calc_svpt_won(row, prefix)
+        rt_opp = _calc_svpt_won(row, opp_prefix)
+        if sv is not None:
+            sv_wons.append(sv)
+        if rt_opp is not None:
+            rt_wons.append(1.0 - rt_opp)  # rtpt_won = 1 - opponent svpt_won
+
+        results.append(1 if is_winner else 0)
+
+        try:
+            m = float(row.get("minutes") or 0)
+            if m > 0:
+                mins_list.append(m)
+        except (ValueError, TypeError):
+            pass
+
+        score = row.get("score", "") or ""
+        sets = len([s for s in score.split() if "-" in s])
+        sets_list.append(max(1, sets))
+
+    # Recency-weighted form rate
+    weights = [1.0 / (i + 1.0) for i in range(len(results))]
+    total_w = sum(weights)
+    form_rate = sum(r * w for r, w in zip(results, weights)) / total_w if total_w > 0 else 0.5
+
+    # Days since last match (for fatigue)
+    last_date_str = recent[0][0].get("tourney_date", "") or ""
+    days_rest = 3
+    if len(last_date_str) == 8:
+        try:
+            ld = datetime.datetime(
+                int(last_date_str[:4]),
+                int(last_date_str[4:6]),
+                int(last_date_str[6:8]),
+            )
+            days_rest = max(0, (datetime.datetime.utcnow() - ld).days)
+        except ValueError:
+            pass
+
+    return {
+        "svpt_won":     round(sum(sv_wons) / len(sv_wons), 4) if sv_wons else None,
+        "rtpt_won":     round(sum(rt_wons) / len(rt_wons), 4) if rt_wons else None,
+        "form_rate":    round(form_rate, 4),
+        "n_matches":    len(recent),
+        "days_rest":    days_rest,
+        "last_minutes": mins_list[0] if mins_list else 90.0,
+        "last_sets":    sets_list[0] if sets_list else 3,
+    }
+
+
+def load_sackmann_data() -> None:
+    """Fetch Sackmann CSVs and populate _SACKMANN_PROFILES + _RECENT_STATS."""
+    all_matches = fetch_sackmann_matches()
+    if not all_matches:
+        log.warning("load_sackmann_data: no match data — using static stats only")
+        return
+    all_players = {**ATP_STATS, **WTA_STATS}
+    ok = 0
+    for key, pdata in all_players.items():
+        full_name = pdata.get("full_name", "")
+        if not full_name:
+            continue
+        profile = build_player_profile(all_matches, full_name, n=20)
+        if profile:
+            _SACKMANN_PROFILES[key] = profile
+            if profile["svpt_won"]:
+                _RECENT_STATS[key] = {
+                    "svpt_won": profile["svpt_won"],
+                    "rtpt_won": profile["rtpt_won"] or 0.0,
+                }
+            ok += 1
+    log.info("load_sackmann_data: %d/%d players profiled", ok, len(all_players))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PREDICTION ENGINE  (v2 — 6-factor model)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def predict(p1_key: str, p2_key: str, surface: str,
             tour_level: str = "atp250", best_of: int = 3) -> dict:
-    """Full pre-match prediction: P(p1 wins), expected games, etc."""
+    """
+    Base probability: 35% Surface ELO + 35% Markov Chain + 30% Hold/Break
+    Adjustments:      fatigue ±8%  |  form ±5%  |  H2H ±5%
+    """
     surf_adj = SURFACE_PT_ADJ.get(surface, 0.0)
+    # get_surface_stats already blends static + _RECENT_STATS (from Sackmann)
     s1 = get_surface_stats(p1_key, surface)
     s2 = get_surface_stats(p2_key, surface)
 
-    form1 = _LIVE_FORM.get(p1_key, 1.0)
-    form2 = _LIVE_FORM.get(p2_key, 1.0)
+    # Sackmann profiles supply fatigue & form; serve stats already in s1/s2
+    prof1 = _SACKMANN_PROFILES.get(p1_key, {})
+    prof2 = _SACKMANN_PROFILES.get(p2_key, {})
 
-    # Effective serve win probability = avg of own serve skill and opp return resistance
-    p1_sv = 0.5 * (s1["svpt_won"] + 1.0 - s2["rtpt_won"]) + surf_adj
-    p2_sv = 0.5 * (s2["svpt_won"] + 1.0 - s1["rtpt_won"]) + surf_adj
-    p1_sv = max(0.50, min(0.78, p1_sv * form1))
-    p2_sv = max(0.50, min(0.78, p2_sv * form2))
+    # Effective serve win probability (Markov input)
+    p1_sv = max(0.50, min(0.78, 0.5 * (s1["svpt_won"] + 1.0 - s2["rtpt_won"]) + surf_adj))
+    p2_sv = max(0.50, min(0.78, 0.5 * (s2["svpt_won"] + 1.0 - s1["rtpt_won"]) + surf_adj))
 
-    model_p1 = match_win_prob(p1_sv, p2_sv, best_of=best_of)
-    elo_p1   = elo_win_prob(s1.get("elo", 1800), s2.get("elo", 1800))
-    h2h      = h2h_adj(p1_key, p2_key)
+    # === Model 1: Markov Chain (35%) ===
+    markov_p1 = match_win_prob(p1_sv, p2_sv, best_of=best_of)
 
-    blend = max(0.05, min(0.95, 0.60 * model_p1 + 0.40 * elo_p1 + h2h))
+    # === Model 2: Surface ELO (35%) ===
+    elo_p1 = elo_win_prob(s1.get("elo", 1800), s2.get("elo", 1800))
+
+    # === Model 3: Hold / Break Dominance (30%) ===
+    # hold = P(player wins serving game); break = P(player wins return game)
+    hold1  = game_win_prob(max(0.50, min(0.80, s1["svpt_won"] + surf_adj)))
+    hold2  = game_win_prob(max(0.50, min(0.80, s2["svpt_won"] + surf_adj)))
+    break1 = game_win_prob(max(0.30, min(0.65, s1["rtpt_won"] - surf_adj)))
+    break2 = game_win_prob(max(0.30, min(0.65, s2["rtpt_won"] - surf_adj)))
+    hb_p1  = hold_break_win_prob(hold1, break1, hold2, break2)
+
+    raw_prob = 0.35 * elo_p1 + 0.35 * markov_p1 + 0.30 * hb_p1
+
+    # === Fatigue Adjustment (additive, ±8%) ===
+    fat1 = fatigue_score(
+        prof1.get("days_rest", 3),
+        float(prof1.get("last_minutes", 90)),
+        int(prof1.get("last_sets", 3)),
+    )
+    fat2 = fatigue_score(
+        prof2.get("days_rest", 3),
+        float(prof2.get("last_minutes", 90)),
+        int(prof2.get("last_sets", 3)),
+    )
+    fat_adj_val = (fat2 - fat1) * 0.015  # positive → p1 fresher
+
+    # === Form Adjustment (additive, ±5%) ===
+    form1_rate = prof1.get("form_rate", 0.5)
+    form2_rate = prof2.get("form_rate", 0.5)
+    form_adj_val = (form1_rate - form2_rate) * 0.15
+
+    # === H2H Adjustment (additive, ±5%) ===
+    h2h_val = h2h_adj(p1_key, p2_key)
+
+    blend = max(0.05, min(0.95,
+                          raw_prob + fat_adj_val + form_adj_val + h2h_val))
     exp_g = expected_total_games(p1_sv, p2_sv, best_of=best_of)
 
-    log.info("predict %s vs %s [%s] sv=%.3f/%.3f markov=%.3f elo=%.3f h2h=%+.3f → %.3f exp_g=%.1f",
-             p1_key, p2_key, surface, p1_sv, p2_sv, model_p1, elo_p1, h2h, blend, exp_g)
+    log.info(
+        "predict %s vs %s [%s] markov=%.3f elo=%.3f hb=%.3f raw=%.3f "
+        "fat=%+.3f form=%+.3f h2h=%+.3f → %.3f exp_g=%.1f",
+        p1_key, p2_key, surface,
+        markov_p1, elo_p1, hb_p1, raw_prob,
+        fat_adj_val, form_adj_val, h2h_val, blend, exp_g,
+    )
 
     return {
-        "blend_p1":      round(blend, 4),
-        "model_p1":      round(model_p1, 4),
-        "elo_p1":        round(elo_p1, 4),
-        "h2h_adj":       round(h2h, 4),
-        "p1_sv":         round(p1_sv, 4),
-        "p2_sv":         round(p2_sv, 4),
-        "elo1":          s1.get("elo", 1800),
-        "elo2":          s2.get("elo", 1800),
+        "blend_p1":       round(blend, 4),
+        "model_p1":       round(markov_p1, 4),
+        "elo_p1":         round(elo_p1, 4),
+        "hb_p1":          round(hb_p1, 4),
+        "h2h_adj":        round(h2h_val, 4),
+        "fat_adj":        round(fat_adj_val, 4),
+        "form_adj":       round(form_adj_val, 4),
+        "p1_sv":          round(p1_sv, 4),
+        "p2_sv":          round(p2_sv, 4),
+        "elo1":           s1.get("elo", 1800),
+        "elo2":           s2.get("elo", 1800),
+        "fatigue1":       round(fat1, 1),
+        "fatigue2":       round(fat2, 1),
+        "form1":          round(form1_rate, 3),
+        "form2":          round(form2_rate, 3),
         "expected_games": round(exp_g, 1),
-        "best_of":       best_of,
-        "surface":       surface,
+        "best_of":        best_of,
+        "surface":        surface,
     }
 
 
@@ -660,10 +875,10 @@ def predict(p1_key: str, p2_key: str, surface: str,
 # ─────────────────────────────────────────────────────────────────────────────
 ODDS_SPORTS = [
     "tennis_atp", "tennis_wta",
-    "tennis_atp_french_open", "tennis_wta_french_open",
-    "tennis_atp_wimbledon",   "tennis_wta_wimbledon",
-    "tennis_atp_us_open",     "tennis_wta_us_open",
-    "tennis_atp_australian_open", "tennis_wta_australian_open",
+    "tennis_atp_french_open",      "tennis_wta_french_open",
+    "tennis_atp_wimbledon",        "tennis_wta_wimbledon",
+    "tennis_atp_us_open",          "tennis_wta_us_open",
+    "tennis_atp_australian_open",  "tennis_wta_australian_open",
 ]
 
 
@@ -743,7 +958,6 @@ def parse_odds(raw: List[dict]) -> Dict[str, dict]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_ta_elo() -> None:
-    """Download Jeff Sackmann's ATP player CSV and seed _LIVE_ELO."""
     try:
         r = requests.get(
             "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master/atp_players.csv",
@@ -818,7 +1032,6 @@ def generate_picks(matches: List[dict]) -> List[dict]:
             best_price, bet_name = odds_info["best_away"], odds_info["away"]
 
         if edge < MIN_EDGE_ML:
-            log.info("  skip %s/%s edge=%.3f", p1_key, p2_key, edge)
             continue
         if model_p < MIN_CONF_ML:
             continue
@@ -840,31 +1053,39 @@ def generate_picks(matches: List[dict]) -> List[dict]:
         surface_emoji = {"clay": "🟤", "grass": "🟢", "hard": "🔵"}.get(m["surface"], "⚪")
 
         picks.append({
-            "tier":         tier,
-            "star":         star,
-            "surface_emoji":surface_emoji,
-            "tour":         TOUR_META.get(m["tour_level"], {}).get("name", m["tour_level"]),
-            "tour_level":   m["tour_level"],
-            "surface":      m["surface"],
-            "p1":           odds_info["home"],
-            "p2":           odds_info["away"],
-            "p1_key":       p1_key,
-            "p2_key":       p2_key,
-            "bet_on":       bet_name,
-            "best_price":   round(best_price, 3),
-            "model_p":      round(model_p * 100, 1),
-            "dv_p":         round(dv_p * 100, 1),
-            "edge":         round(edge * 100, 1),
-            "conf":         round(conf * 100, 1),
-            "stake":        round(stake, 0),
-            "p1_sv_pct":    round(pred["p1_sv"] * 100, 1),
-            "p2_sv_pct":    round(pred["p2_sv"] * 100, 1),
-            "elo1":         pred["elo1"],
-            "elo2":         pred["elo2"],
+            "tier":          tier,
+            "star":          star,
+            "surface_emoji": surface_emoji,
+            "tour":          TOUR_META.get(m["tour_level"], {}).get("name", m["tour_level"]),
+            "tour_level":    m["tour_level"],
+            "surface":       m["surface"],
+            "p1":            odds_info["home"],
+            "p2":            odds_info["away"],
+            "p1_key":        p1_key,
+            "p2_key":        p2_key,
+            "bet_on":        bet_name,
+            "best_price":    round(best_price, 3),
+            "model_p":       round(model_p * 100, 1),
+            "dv_p":          round(dv_p * 100, 1),
+            "edge":          round(edge * 100, 1),
+            "conf":          round(conf * 100, 1),
+            "stake":         round(stake, 0),
+            "p1_sv_pct":     round(pred["p1_sv"] * 100, 1),
+            "p2_sv_pct":     round(pred["p2_sv"] * 100, 1),
+            "elo1":          pred["elo1"],
+            "elo2":          pred["elo2"],
             "expected_games": pred["expected_games"],
-            "best_of":      pred["best_of"],
-            "h2h_adj":      round(pred["h2h_adj"] * 100, 1),
-            "commence":     odds_info.get("commence", ""),
+            "best_of":       pred["best_of"],
+            "h2h_adj":       round(pred["h2h_adj"] * 100, 1),
+            # v2 new fields
+            "hb_p1":         round(pred.get("hb_p1", 0.5) * 100, 1),
+            "form_adj":      round(pred.get("form_adj", 0.0) * 100, 1),
+            "fat_adj":       round(pred.get("fat_adj", 0.0) * 100, 1),
+            "fatigue1":      pred.get("fatigue1", 0.0),
+            "fatigue2":      pred.get("fatigue2", 0.0),
+            "form1":         round(pred.get("form1", 0.5) * 100, 1),
+            "form2":         round(pred.get("form2", 0.5) * 100, 1),
+            "commence":      odds_info.get("commence", ""),
         })
         log.info("  PICK %s %s vs %s → %s @%.2f model=%.1f%% edge=+%.1f%% $%.0f",
                  star, odds_info["home"], odds_info["away"],
@@ -954,6 +1175,9 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             lines.append("%s %s %s vs %s" % (p["star"], p["surface_emoji"], p["p1"], p["p2"]))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
                 p["bet_on"], p["best_price"], p["model_p"], p["edge"], p["stake"]))
+            if p.get("fat_adj", 0) or p.get("form_adj", 0):
+                lines.append("  體能:%+.1f%%  狀態:%+.1f%%  H/B:%.1f%%" % (
+                    p.get("fat_adj", 0), p.get("form_adj", 0), p.get("hb_p1", 50)))
     lines.append("```")
     if stats.get("settled", 0):
         lines.append("戰績: %d/%d (%.1f%%)  ROI: %.1f%%" % (
@@ -974,6 +1198,7 @@ def write_json(picks: List[dict], stats: dict, history: dict,
     payload = {
         "generated_at": now.strftime("%Y-%m-%d %H:%M") + " (台灣時間)",
         "date":         now.strftime("%Y-%m-%d"),
+        "model_version": "v2.0 — 6-factor",
         "stats":        stats,
         "picks":        picks,
         "recent_history": list(reversed(history.get("bets", [])[-10:])),
@@ -991,9 +1216,10 @@ def write_json(picks: List[dict], stats: dict, history: dict,
 
 def run() -> None:
     now_tw = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    log.info("=== Tennis Bot start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
+    log.info("=== Tennis Bot v2.0 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
 
-    fetch_ta_elo()
+    fetch_ta_elo()       # static ELO override (no-op if CSV lacks elo column)
+    load_sackmann_data() # rolling form/fatigue from ATP+WTA match CSVs
 
     raw_odds = fetch_odds()
     odds_map = parse_odds(raw_odds)
