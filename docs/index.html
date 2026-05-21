@@ -324,6 +324,9 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
   background-clip:text;
 }
 
+/* match start time */
+.match-time{font-size:.65rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:4px;white-space:nowrap;font-family:monospace}
+
 /* ─── TABS ─── */
 .tab-bar{
   display:flex;align-items:center;gap:4px;
@@ -637,12 +640,18 @@ function setNum(id,text,cls=''){
 }
 
 function confScore(p){
+  if(p.conf != null) return Math.round(p.conf);
   const edge = p.edge ?? 0;
-  const base  = Math.min(95, Math.max(30, 50 + edge * 3));
-  const bonus = {A:6, B:0, C:-6}[p.tier||'C'] ?? 0;
-  return Math.round(Math.min(99, Math.max(20, base + bonus)));
+  const base  = Math.min(82, Math.max(30, 50 + edge * 1.0));
+  const bonus = {A:5, B:0, C:-5}[p.tier||'C'] ?? 0;
+  return Math.round(Math.min(92, Math.max(20, base + bonus)));
 }
 function confColor(score){ return score >= 80 ? 'g' : score >= 65 ? 'o' : ''; }
+
+function fmtTW(iso){
+  if(!iso) return '';
+  return new Date(iso).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'});
+}
 
 function fmtLoad(n){
   if(n == null) return '—';
@@ -716,6 +725,7 @@ function renderPick(p){
       <span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span>
       <span class="tag ${surf}">${SURF[surf]||surf}</span>
       <span class="tier-badge">${tierLbl}</span>
+      ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)} TW</span>`:''}
     </div>
     <div class="conf-row">
       <div class="conf-meta"><span>模型信心指數</span><strong class="${cc}">${conf} / 100</strong></div>
