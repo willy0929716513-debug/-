@@ -9,6 +9,7 @@
   --bg:#0f1117;--card:#1a1d27;--card2:#22263a;
   --acc:#4f8ef7;--green:#2ecc71;--red:#e74c3c;
   --text:#e8eaf0;--sub:#8892b0;--border:#2d3250;
+  --orange:#f39c12;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
@@ -41,7 +42,7 @@ header h1{font-size:1.2rem;font-weight:700}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
 .stat-card .label{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
 .stat-card .val{font-size:1.5rem;font-weight:700}
-.green{color:var(--green)}.red{color:var(--red)}
+.green{color:var(--green)}.red{color:var(--red)}.orange{color:var(--orange)}
 .section{margin-bottom:28px}
 .section-title{font-size:.85rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -74,6 +75,12 @@ header h1{font-size:1.2rem;font-weight:700}
 .bet-box .price{font-size:1.1rem;font-weight:700;color:var(--green)}
 .bet-box .edge{font-size:.82rem;color:var(--acc);background:rgba(79,142,247,.15);padding:3px 8px;border-radius:6px}
 .bet-box .stake{font-size:.82rem;color:var(--sub)}
+/* Adjustment pills row */
+.adj-row{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding-top:6px}
+.adj-pill{font-size:.75rem;padding:3px 9px;border-radius:20px;font-weight:600;background:var(--card2)}
+.adj-pill.pos{color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.adj-pill.neg{color:var(--red);border:1px solid rgba(231,76,60,.3)}
+.adj-pill.neu{color:var(--sub);border:1px solid var(--border)}
 /* LIVE */
 .live-card{background:var(--card);border:1px solid #e74c3c44;border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s infinite;flex-shrink:0}
@@ -99,21 +106,21 @@ header h1{font-size:1.2rem;font-weight:700}
 <body>
 <header>
   <span style="font-size:1.5rem">🎾</span>
-  <h1>Tennis Predictor</h1>
+  <h1>Tennis Predictor <span style="font-size:.7rem;color:var(--sub);font-weight:400">v2</span></h1>
   <div class="header-actions">
     <div class="run-status" id="run-status">
       <div class="status-dot idle" id="status-dot"></div>
       <span id="status-text">—</span>
     </div>
-    <button class="btn btn-live" id="btn-live" onclick="triggerWorkflow('live')">🔴 <span>場中更新</span></button>
-    <button class="btn btn-primary" id="btn-run" onclick="triggerWorkflow('full')">⚡ <span>立即執行</span></button>
-    <button class="btn btn-ghost" onclick="openSettings()">⚙️</button>
+    <button class="btn btn-live" id="btn-live" onclick="triggerWorkflow('live')">&#128308; <span>場中更新</span></button>
+    <button class="btn btn-primary" id="btn-run" onclick="triggerWorkflow('full')">&#9889; <span>立即執行</span></button>
+    <button class="btn btn-ghost" onclick="openSettings()">&#9881;&#65039;</button>
   </div>
 </header>
 
 <div class="modal-bg" id="modal" style="display:none" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
-    <h2>⚙️ 設定 GitHub Token</h2>
+    <h2>&#9881;&#65039; 設定 GitHub Token</h2>
     <p>需要具有 <code>workflow</code> 權限的 Personal Access Token。<br>儲於瀏覽器 localStorage，不會上傳至任何地方。</p>
     <label>GitHub Personal Access Token</label>
     <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
@@ -159,12 +166,10 @@ const BRANCH = 'claude/tennis-prediction-model-OhNiO';
 const WF     = 'tennis_bot.yml';
 const SURF_CN = {clay:'🟤 紅土', grass:'🟢 草地', hard:'🔵 硬地'};
 
-/* 返回台灣日期標籤 */
 function dayLabel(iso){
   if(!iso) return {key:'?', label:'日期未知', cls:''};
   const d   = new Date(iso);
   const now = new Date();
-  /* 用 TW offset 轉成 yyyy-mm-dd */
   const toDate = t => {
     const tw = new Date(t.getTime() + 8*3600*1000);
     return tw.toISOString().slice(0,10);
@@ -176,9 +181,15 @@ function dayLabel(iso){
   if(matchDay === todayDay)   return {key: matchDay, label: '🟢 今日', cls: 'today'};
   if(matchDay === tom)        return {key: matchDay, label: '🔵 明日', cls: 'tomorrow'};
   if(matchDay === aftertom)   return {key: matchDay, label: '⭐ 後天', cls: ''};
-  /* 其他日期顯示 MM/DD */
   const [,m,dd] = matchDay.split('-');
   return {key: matchDay, label: `🗓️ ${+m}/${+dd}`, cls: ''};
+}
+
+function fmtAdj(v){
+  if(v === undefined || v === null) return '<span style="color:var(--sub)">—</span>';
+  const cls = v > 0.3 ? 'green' : v < -0.3 ? 'red' : '';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
 }
 
 function getToken(){ return localStorage.getItem('gh_token') || ''; }
@@ -216,7 +227,7 @@ async function triggerWorkflow(mode='full'){
     else if(res.status===403){ toast('Token 缺少 workflow 權限','err'); }
     else{ const j=await res.json().catch(()=>({})); toast('Error '+res.status+': '+(j.message||'?'),'err'); }
   }catch(e){ toast('網路錯誤：'+e.message,'err'); }
-  finally{ setTimeout(()=>{ btn.disabled=false; btn.innerHTML=mode==='live'?'🔴 <span>場中更新</span>':'⚡ <span>立即執行</span>'; },5000); }
+  finally{ setTimeout(()=>{ btn.disabled=false; btn.innerHTML=mode==='live'?'&#128308; <span>場中更新</span>':'&#9889; <span>立即執行</span>'; },5000); }
 }
 
 async function checkRunStatus(){
@@ -240,7 +251,7 @@ async function checkRunStatus(){
 async function load(){
   let data;
   try{ const r=await fetch('picks_latest.json?t='+Date.now()); data=await r.json(); }
-  catch(e){ document.getElementById('picks-list').innerHTML='<div class="empty">⚠️ 無法載入資料</div>'; return; }
+  catch(e){ document.getElementById('picks-list').innerHTML='<div class="empty">&#9888;&#65039; 無法載入資料</div>'; return; }
 
   document.getElementById('updated-at').textContent='最後更新：'+(data.generated_at||'—');
 
@@ -264,9 +275,8 @@ async function load(){
 
   const picks=data.picks||[];
   if(!picks.length){
-    document.getElementById('picks-list').innerHTML='<div class="empty">今日無符合條件的推薦<br><small style="font-size:.78rem;margin-top:6px;display:block">模型仍在尋找邊際值機會</small></div>';
+    document.getElementById('picks-list').innerHTML='<div class="empty">今日無符合條件的推薦<br><small style="font-size:.78rem;margin-top:6px;display:block">模型仍在尋找邊際値機會</small></div>';
   } else {
-    /* 依台灣日期分組 */
     const groups = {};
     picks.forEach(p=>{
       const dl = dayLabel(p.commence);
@@ -279,6 +289,14 @@ async function load(){
         const surf=p.surface||'hard';
         const h2h=p.h2h_adj>0?`<span class="green">+${p.h2h_adj}%</span>`
                  :p.h2h_adj<0?`<span class="red">${p.h2h_adj}%</span>`:'—';
+
+        // Adjustment pills
+        const pills = [
+          p.fat_adj !== undefined  ? `<span class="adj-pill ${p.fat_adj>0.3?'pos':p.fat_adj<-0.3?'neg':'neu'}">體能 ${p.fat_adj>0?'+':''}${(p.fat_adj||0).toFixed(1)}%</span>` : '',
+          p.form_adj !== undefined ? `<span class="adj-pill ${p.form_adj>0.3?'pos':p.form_adj<-0.3?'neg':'neu'}">狀態 ${p.form_adj>0?'+':''}${(p.form_adj||0).toFixed(1)}%</span>` : '',
+          p.h2h_adj               ? `<span class="adj-pill ${p.h2h_adj>0?'pos':p.h2h_adj<0?'neg':'neu'}">H2H ${p.h2h_adj>0?'+':''}${(p.h2h_adj||0).toFixed(1)}%</span>` : '',
+        ].filter(Boolean).join('');
+
         return `<div class="pick-card tier-${p.tier}">
           <div class="pick-header">
             <span style="font-size:1.15rem">${p.star}</span>
@@ -291,13 +309,14 @@ async function load(){
             <div>
               <div class="pick-row"><span class="lbl">模型勝率</span><span class="val">${p.model_p}%</span></div>
               <div class="pick-row"><span class="lbl">市場隱含</span><span class="val">${p.dv_p}%</span></div>
-              <div class="pick-row"><span class="lbl">ELO</span><span class="val">${p.elo1} / ${p.elo2}</span></div>
+              <div class="pick-row"><span class="lbl">ELO 兆</span><span class="val">${p.elo1} / ${p.elo2}</span></div>
             </div>
             <div>
+              <div class="pick-row"><span class="lbl">Hold/Break 模型</span><span class="val">${p.hb_p1 !== undefined ? p.hb_p1+'%' : '—'}</span></div>
               <div class="pick-row"><span class="lbl">P1 發球得分率</span><span class="val">${p.p1_sv_pct}%</span></div>
               <div class="pick-row"><span class="lbl">P2 發球得分率</span><span class="val">${p.p2_sv_pct}%</span></div>
-              <div class="pick-row"><span class="lbl">H2H 修正</span><span class="val">${h2h}</span></div>
             </div>
+            ${pills ? `<div class="adj-row">${pills}</div>` : ''}
             <div class="bet-box">
               <div>
                 <div style="font-size:.72rem;color:var(--sub);margin-bottom:3px">推薦投注</div>
