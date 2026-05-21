@@ -12,8 +12,6 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
-
-/* HEADER */
 header{background:linear-gradient(135deg,#1a1d27,#22263a);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
 header h1{font-size:1.2rem;font-weight:700}
 .header-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
@@ -25,8 +23,6 @@ header h1{font-size:1.2rem;font-weight:700}
 .btn-ghost:hover{border-color:var(--acc);color:var(--acc)}
 .btn-live{background:rgba(231,76,60,.2);color:var(--red);border:1px solid rgba(231,76,60,.4)}
 .btn-live:hover{background:rgba(231,76,60,.35)}
-
-/* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:min(420px,92vw)}
 .modal h2{font-size:1.05rem;margin-bottom:6px}
@@ -35,15 +31,11 @@ header h1{font-size:1.2rem;font-weight:700}
 .modal input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s}
 .modal input:focus{border-color:var(--acc)}
 .modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
-
-/* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:12px 18px;border-radius:10px;font-size:.85rem;font-weight:600;animation:slideUp .3s ease}
 .toast.ok{background:#27ae60;color:#fff}
 .toast.err{background:var(--red);color:#fff}
 .toast.info{background:var(--acc);color:#fff}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
-
-/* STATUS BAR */
 .run-status{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--sub)}
 .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .status-dot.running{background:#f39c12;animation:pulse 1s infinite}
@@ -51,30 +43,24 @@ header h1{font-size:1.2rem;font-weight:700}
 .status-dot.failure{background:var(--red)}
 .status-dot.idle{background:var(--sub)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-/* CONTAINER */
 .container{max-width:960px;margin:0 auto;padding:20px 16px}
-
-/* STATS */
 .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
 .stat-card .label{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
 .stat-card .val{font-size:1.5rem;font-weight:700}
 .green{color:var(--green)}.red{color:var(--red)}
-
-/* SECTION */
 .section{margin-bottom:28px}
 .section-title{font-size:.85rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
-
-/* PICK CARD */
 .pick-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
 .pick-card:hover{border-color:var(--acc)}
 .pick-card.tier-A{border-left:3px solid #f39c12}
 .pick-card.tier-B{border-left:3px solid var(--acc)}
 .pick-card.tier-C{border-left:3px solid var(--sub)}
 .pick-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-.pick-header .matchup{font-size:1.05rem;font-weight:700;flex:1}
+.pick-header .matchup{font-size:1.05rem;font-weight:700;flex:1;min-width:0}
+.pick-time{font-size:.78rem;color:var(--sub);background:var(--card2);padding:3px 8px;border-radius:6px;white-space:nowrap;font-feature-settings:'tnum'}
+.pick-time.soon{color:#f39c12;background:rgba(243,156,18,.12)}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600}
 .badge.clay{background:rgba(192,57,43,.2);color:#e74c3c;border:1px solid rgba(192,57,43,.4)}
 .badge.grass{background:rgba(39,174,96,.2);color:#2ecc71;border:1px solid rgba(39,174,96,.4)}
@@ -91,8 +77,6 @@ header h1{font-size:1.2rem;font-weight:700}
 .bet-box .price{font-size:1.1rem;font-weight:700;color:var(--green)}
 .bet-box .edge{font-size:.82rem;color:var(--acc);background:rgba(79,142,247,.15);padding:3px 8px;border-radius:6px}
 .bet-box .stake{font-size:.82rem;color:var(--sub)}
-
-/* LIVE */
 .live-card{background:var(--card);border:1px solid #e74c3c44;border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s infinite;flex-shrink:0}
 .live-matchup{font-weight:600;flex:1}
@@ -100,8 +84,6 @@ header h1{font-size:1.2rem;font-weight:700}
 .live-drift{font-size:.78rem;padding:3px 8px;border-radius:6px}
 .live-drift.up{background:rgba(46,204,113,.15);color:var(--green)}
 .live-drift.dn{background:rgba(231,76,60,.15);color:var(--red)}
-
-/* HISTORY TABLE */
 .hist-table{width:100%;border-collapse:collapse}
 .hist-table th{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
 .hist-table td{padding:10px 12px;font-size:.85rem;border-bottom:1px solid var(--border)}
@@ -109,7 +91,6 @@ header h1{font-size:1.2rem;font-weight:700}
 .result-W{color:var(--green);font-weight:700}
 .result-L{color:var(--red);font-weight:700}
 .result-P,.result-null{color:var(--sub)}
-
 .empty{text-align:center;padding:40px 20px;color:var(--sub);font-size:.9rem}
 .updated{font-size:.72rem;color:var(--sub);text-align:center;margin-top:24px;padding-bottom:32px}
 @media(max-width:600px){
@@ -120,8 +101,6 @@ header h1{font-size:1.2rem;font-weight:700}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <header>
   <span style="font-size:1.5rem">🎾</span>
   <h1>Tennis Predictor</h1>
@@ -130,54 +109,41 @@ header h1{font-size:1.2rem;font-weight:700}
       <div class="status-dot idle" id="status-dot"></div>
       <span id="status-text">—</span>
     </div>
-    <button class="btn btn-live" id="btn-live" onclick="triggerWorkflow('live')">
-      🔴 <span>場中更新</span>
-    </button>
-    <button class="btn btn-primary" id="btn-run" onclick="triggerWorkflow('full')">
-      ⚡ <span>立即執行</span>
-    </button>
+    <button class="btn btn-live" id="btn-live" onclick="triggerWorkflow('live')">🔴 <span>場中更新</span></button>
+    <button class="btn btn-primary" id="btn-run" onclick="triggerWorkflow('full')">⚡ <span>立即執行</span></button>
     <button class="btn btn-ghost" onclick="openSettings()" title="設定 Token">⚙️</button>
   </div>
 </header>
 
-<!-- SETTINGS MODAL -->
 <div class="modal-bg" id="modal" style="display:none" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <h2>⚙️ 設定 GitHub Token</h2>
-    <p>需要具有 <code>workflow</code> 權限的 Personal Access Token。<br>傲儲於瀏覽器 localStorage，不會上傳至任何地方。</p>
+    <p>需要具有 <code>workflow</code> 權限的 Personal Access Token。<br>儲於瀏覽器 localStorage，不會上傳至任何地方。</p>
     <label>GitHub Personal Access Token</label>
     <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
     <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="clearToken()">&#128465; 清除</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('modal').style.display='none'">&#10005; 取消</button>
-      <button class="btn btn-primary" onclick="saveToken()">&#10003; 儲存</button>
+      <button class="btn btn-ghost" onclick="clearToken()">🗑️ 清除</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal').style.display='none'">✕ 取消</button>
+      <button class="btn btn-primary" onclick="saveToken()">✓ 儲存</button>
     </div>
   </div>
 </div>
 
 <div class="container">
-
-  <!-- STATS -->
   <div class="stats-bar">
     <div class="stat-card"><div class="label">已結算</div><div class="val" id="s-settled">—</div></div>
     <div class="stat-card"><div class="label">勝率</div><div class="val" id="s-wr">—</div></div>
     <div class="stat-card"><div class="label">ROI</div><div class="val" id="s-roi">—</div></div>
     <div class="stat-card"><div class="label">損益</div><div class="val" id="s-pnl">—</div></div>
   </div>
-
-  <!-- LIVE -->
   <div class="section" id="live-section" style="display:none">
     <div class="section-title">🔴 場中監控</div>
     <div id="live-list"></div>
   </div>
-
-  <!-- PICKS -->
   <div class="section">
     <div class="section-title">📌 今日推薦</div>
     <div id="picks-list"><div class="empty">載入中...</div></div>
   </div>
-
-  <!-- HISTORY -->
   <div class="section">
     <div class="section-title">📋 近期戰績</div>
     <div id="hist-wrap">
@@ -187,7 +153,6 @@ header h1{font-size:1.2rem;font-weight:700}
       </table>
     </div>
   </div>
-
   <div class="updated" id="updated-at"></div>
 </div>
 
@@ -198,7 +163,26 @@ const BRANCH = 'claude/tennis-prediction-model-OhNiO';
 const WF     = 'tennis_bot.yml';
 const SURF_CN = {clay:'🟤 紅土', grass:'🟢 草地', hard:'🔵 硬地'};
 
-// ── TOKEN ──────────────────────────────────────────────────────────────────
+/* 將 UTC ISO 轉成台灣時間字串，並表明是否少於 3 小時內開打 */
+function fmtTime(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  if(isNaN(d)) return null;
+  const tw = new Date(d.getTime() + 8*3600*1000);
+  const hh = String(tw.getUTCHours()).padStart(2,'0');
+  const mm = String(tw.getUTCMinutes()).padStart(2,'0');
+  const now = Date.now();
+  const diffMs = d.getTime() - now;
+  const soon = diffMs > 0 && diffMs < 3*3600*1000;  // 少於 3 小時內開打
+  const diffH = Math.round(diffMs/3600000);
+  let label;
+  if(diffMs < -1800*1000) label = '已開打';
+  else if(diffMs < 0)     label = '即將開打';
+  else if(diffH < 1)      label = '小於 1 小時';
+  else                    label = '還有 '+diffH+' 小時';
+  return { time: hh+':'+mm+' TW', label, soon };
+}
+
 function getToken(){ return localStorage.getItem('gh_token') || ''; }
 function saveToken(){
   const v = document.getElementById('token-input').value.trim();
@@ -217,147 +201,106 @@ function openSettings(){
   document.getElementById('token-input').value = t ? t.slice(0,8)+'...' : '';
   document.getElementById('modal').style.display = 'flex';
 }
-function closeModal(e){
-  if(e.target.id === 'modal') document.getElementById('modal').style.display = 'none';
-}
+function closeModal(e){ if(e.target.id==='modal') document.getElementById('modal').style.display='none'; }
 
-// ── TOAST ──────────────────────────────────────────────────────────────────
 function toast(msg, type='info'){
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  setTimeout(()=>el.remove(), 3200);
 }
 
-// ── TRIGGER WORKFLOW ───────────────────────────────────────────────────────
 async function triggerWorkflow(mode='full'){
   const token = getToken();
-  if(!token){
-    openSettings();
-    toast('請先設定 GitHub Token','err');
-    return;
-  }
-  const btn = mode==='live'
-    ? document.getElementById('btn-live')
-    : document.getElementById('btn-run');
+  if(!token){ openSettings(); toast('請先設定 GitHub Token','err'); return; }
+  const btn = mode==='live' ? document.getElementById('btn-live') : document.getElementById('btn-run');
   btn.disabled = true;
   btn.textContent = mode==='live' ? '場中更新中...' : '執行中...';
-
   try{
     const res = await fetch(
       `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WF}/dispatches`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ref: BRANCH, inputs: { mode } }),
-      }
+      { method:'POST',
+        headers:{'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github+json',
+                 'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+        body: JSON.stringify({ref:BRANCH, inputs:{mode}}) }
     );
-    if(res.status === 204){
-      toast('已觸發！約 1−2 分鐘後完成 ✅','ok');
-      setTimeout(()=>{ checkRunStatus(); load(); }, 8000);
-    } else if(res.status === 401){
-      toast('Token 無效，請重新設定','err');
-      openSettings();
-    } else if(res.status === 403){
-      toast('Token 缺少 workflow 權限','err');
-    } else {
-      const j = await res.json().catch(()=>({}));
-      toast('Error '+res.status+': '+(j.message||'unknown'),'err');
-    }
-  } catch(e){
-    toast('網路錯誤：'+e.message,'err');
-  } finally{
-    setTimeout(()=>{
-      btn.disabled = false;
-      btn.innerHTML = mode==='live' ? '🔴 <span>場中更新</span>' : '⚡ <span>立即執行</span>';
-    }, 5000);
-  }
+    if(res.status===204){ toast('已觸發！約1−2分鐘後完成 ✅','ok'); setTimeout(()=>{ checkRunStatus(); load(); },8000); }
+    else if(res.status===401){ toast('Token 無效，請重新設定','err'); openSettings(); }
+    else if(res.status===403){ toast('Token 缺少 workflow 權限','err'); }
+    else { const j=await res.json().catch(()=>({})); toast('Error '+res.status+': '+(j.message||'?'),'err'); }
+  }catch(e){ toast('網路錯誤：'+e.message,'err'); }
+  finally{ setTimeout(()=>{ btn.disabled=false; btn.innerHTML=mode==='live'?'🔴 <span>場中更新</span>':'⚡ <span>立即執行</span>'; },5000); }
 }
 
-// ── CHECK LATEST RUN STATUS ────────────────────────────────────────────────
 async function checkRunStatus(){
   const token = getToken();
   if(!token) return;
   try{
     const res = await fetch(
       `https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?branch=${encodeURIComponent(BRANCH)}&per_page=1`,
-      { headers: { 'Authorization': `Bearer ${token}`,
-                   'Accept': 'application/vnd.github+json' } }
+      {headers:{'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github+json'}}
     );
     if(!res.ok) return;
     const j = await res.json();
-    const run = (j.workflow_runs || [])[0];
+    const run = (j.workflow_runs||[])[0];
     if(!run) return;
-    const dot  = document.getElementById('status-dot');
-    const txt  = document.getElementById('status-text');
-    const st   = run.status;   // queued | in_progress | completed
-    const con  = run.conclusion; // success | failure | null
-    if(st === 'completed'){
-      dot.className = 'status-dot ' + (con==='success'?'success':'failure');
-      txt.textContent = con==='success' ? '上次執行成功 ✅' : '上次執行失敗 ❌';
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    if(run.status==='completed'){
+      dot.className = 'status-dot '+(run.conclusion==='success'?'success':'failure');
+      txt.textContent = run.conclusion==='success' ? '上次執行成功 ✅' : '上次執行失敗 ❌';
     } else {
       dot.className = 'status-dot running';
-      txt.textContent = st==='in_progress' ? '執行中...' : '排隊中...';
+      txt.textContent = run.status==='in_progress' ? '執行中...' : '排隊中...';
       setTimeout(checkRunStatus, 8000);
     }
-  } catch(_){}
+  }catch(_){}
 }
 
-// ── RENDER PICKS ───────────────────────────────────────────────────────────
 async function load(){
   let data;
-  try{
-    const r = await fetch('picks_latest.json?t='+Date.now());
-    data = await r.json();
-  } catch(e){
-    document.getElementById('picks-list').innerHTML='<div class="empty">⚠️ 無法載入資料</div>';
-    return;
-  }
+  try{ const r=await fetch('picks_latest.json?t='+Date.now()); data=await r.json(); }
+  catch(e){ document.getElementById('picks-list').innerHTML='<div class="empty">⚠️ 無法載入資料</div>'; return; }
 
-  document.querySelector('header h1').nextSibling;
-  document.getElementById('updated-at').textContent =
-    '最後更新：' + (data.generated_at || '—');
+  document.getElementById('updated-at').textContent = '最後更新：'+(data.generated_at||'—');
 
-  // Stats
-  const st = data.stats || {};
-  const wr = st.win_rate ?? 0, roi = st.roi ?? 0, pnl = st.pnl ?? 0;
-  document.getElementById('s-settled').textContent = st.settled ?? 0;
+  const st=data.stats||{};
+  const wr=st.win_rate??0, roi=st.roi??0, pnl=st.pnl??0;
+  document.getElementById('s-settled').textContent = st.settled??0;
   setVal('s-wr',  wr  ? wr.toFixed(1)+'%'  : '—', wr>=55?'green':'');
   setVal('s-roi', roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—', roi>0?'green':roi<0?'red':'');
   setVal('s-pnl', pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—', pnl>0?'green':pnl<0?'red':'');
 
-  // Live
-  const lives = (data.live_matches||[]).filter(m=>m.bet);
-  document.getElementById('live-section').style.display = lives.length ? '' : 'none';
-  document.getElementById('live-list').innerHTML = lives.map(m=>{
-    const d = m.drift||0;
-    return `<div class="live-card">
-      <div class="live-dot"></div>
+  const lives=(data.live_matches||[]).filter(m=>m.bet);
+  document.getElementById('live-section').style.display=lives.length?'':'none';
+  document.getElementById('live-list').innerHTML=lives.map(m=>{
+    const d=m.drift||0;
+    return `<div class="live-card"><div class="live-dot"></div>
       <div class="live-matchup">${m.home} vs ${m.away}</div>
       <div class="live-bet">${m.bet}</div>
       <span class="live-drift ${d>=0?'up':'dn'}">${d>0?'+':''}${d.toFixed(1)}% 賠率漂移</span>
-      <span style="font-size:.78rem;color:var(--sub)">${m.reason||''}</span>
-    </div>`;
+      <span style="font-size:.78rem;color:var(--sub)">${m.reason||''}</span></div>`;
   }).join('');
 
-  // Picks
-  const picks = data.picks || [];
-  document.getElementById('picks-list').innerHTML = picks.length
+  const picks=data.picks||[];
+  document.getElementById('picks-list').innerHTML=picks.length
     ? picks.map(p=>{
-        const surf = p.surface||'hard';
-        const h2h = p.h2h_adj>0
-          ? `<span class="green">+${p.h2h_adj}%</span>`
-          : p.h2h_adj<0 ? `<span class="red">${p.h2h_adj}%</span>` : '—';
+        const surf=p.surface||'hard';
+        const h2h=p.h2h_adj>0?`<span class="green">+${p.h2h_adj}%</span>`
+                 :p.h2h_adj<0?`<span class="red">${p.h2h_adj}%</span>`:'—';
+
+        // ★ 比賽時間（台灣時間）
+        const tf = fmtTime(p.commence);
+        const timeHtml = tf
+          ? `<span class="pick-time${tf.soon?' soon':''}">🕒 ${tf.time} <small>${tf.label}</small></span>`
+          : '';
+
         return `<div class="pick-card tier-${p.tier}">
           <div class="pick-header">
             <span style="font-size:1.15rem">${p.star}</span>
             <span class="matchup">${p.p1} <span style="color:var(--sub);font-weight:400">vs</span> ${p.p2}</span>
+            ${timeHtml}
             <span class="badge ${surf}">${SURF_CN[surf]||surf}</span>
             <span class="badge tour">${p.tour||''}</span>
             <span class="badge" style="background:rgba(255,255,255,.06);color:var(--sub);border:none">${p.best_of===5?'BO5 大滿貫':'BO3'}</span>
@@ -389,9 +332,8 @@ async function load(){
       }).join('')
     : '<div class="empty">今日無符合條件的推薦<br><small style="font-size:.78rem;margin-top:6px;display:block">模型仍在尋找邊際值機會</small></div>';
 
-  // History
-  const hist = data.recent_history || [];
-  document.getElementById('hist-wrap').innerHTML = hist.length
+  const hist=data.recent_history||[];
+  document.getElementById('hist-wrap').innerHTML=hist.length
     ? `<table class="hist-table"><thead><tr><th>日期</th><th>對陣</th><th>推薦</th><th>賠率</th><th>結果</th></tr></thead><tbody>${
         hist.map(b=>{
           const r=b.result;
@@ -402,13 +344,11 @@ async function load(){
     : '<div class="empty">尚無歷史紀錄</div>';
 }
 
-function setVal(id, text, cls=''){
-  const el = document.getElementById(id);
-  el.textContent = text;
-  el.className = 'val ' + cls;
+function setVal(id,text,cls=''){
+  const el=document.getElementById(id);
+  el.textContent=text; el.className='val '+cls;
 }
 
-// init
 load();
 checkRunStatus();
 setInterval(load, 5*60*1000);
