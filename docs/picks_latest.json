@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21 23:00 (台灣時間)",
+  "generated_at": "2026-05-21 22:37 (台灣時間)",
   "date": "2026-05-21",
   "model_version": "v3.2 — 15-factor: ELO(live)+BO5+SurfaceH2H+1stSrv+BPconv+Cond+KellyTier",
   "stats": {
@@ -34,7 +34,7 @@
       "p2_sv_pct": 60.3,
       "elo1": 1471.5,
       "elo2": 1800,
-      "expected_games": 41.1,
+      "expected_games": 41.3,
       "best_of": 5,
       "h2h_adj": 0.0,
       "hb_p1": 49.9,
@@ -93,17 +93,17 @@
       "p1_key": "felix_gill",
       "p2_key": "kyrian_jacquet",
       "bet_on": "Felix Gill",
-      "best_price": 2.48,
+      "best_price": 2.5,
       "model_p": 68.7,
-      "dv_p": 39.3,
-      "edge": 29.3,
+      "dv_p": 39.6,
+      "edge": 29.1,
       "conf": 87.3,
-      "stake": 124.0,
+      "stake": 125.0,
       "p1_sv_pct": 63.6,
       "p2_sv_pct": 63.1,
       "elo1": 1800,
       "elo2": 1500.0,
-      "expected_games": 42.1,
+      "expected_games": 42.2,
       "best_of": 5,
       "h2h_adj": 0.0,
       "hb_p1": 50.2,
@@ -130,7 +130,7 @@
       "court_speed": 0.0,
       "altitude_adj": 0.0,
       "wind_adj": 0.0,
-      "wind_kmh": 0.0,
+      "wind_kmh": 4.2,
       "streak_adj": 0.0,
       "win_streak1": 0,
       "win_streak2": -1,
@@ -164,15 +164,15 @@
       "bet_on": "Tallon Griekspoor",
       "best_price": 2.0,
       "model_p": 67.1,
-      "dv_p": 49.1,
-      "edge": 17.9,
+      "dv_p": 49.6,
+      "edge": 17.5,
       "conf": 84.2,
       "stake": 86.0,
       "p1_sv_pct": 63.2,
       "p2_sv_pct": 60.0,
       "elo1": 1468.6,
       "elo2": 1464.2,
-      "expected_games": 40.6,
+      "expected_games": 40.5,
       "best_of": 5,
       "h2h_adj": 0.0,
       "hb_p1": 54.3,
@@ -268,7 +268,7 @@
       "court_speed": 0.0,
       "altitude_adj": 0.0,
       "wind_adj": 0.0,
-      "wind_kmh": 9.6,
+      "wind_kmh": 0.0,
       "streak_adj": 0.0,
       "win_streak1": -1,
       "win_streak2": -2,
@@ -302,8 +302,8 @@
       "bet_on": "Hubert Hurkacz",
       "best_price": 1.77,
       "model_p": 65.0,
-      "dv_p": 54.2,
-      "edge": 10.8,
+      "dv_p": 54.0,
+      "edge": 11.0,
       "conf": 79.9,
       "stake": 50.0,
       "p1_sv_pct": 63.4,
@@ -337,7 +337,7 @@
       "court_speed": 0.0,
       "altitude_adj": 0.0,
       "wind_adj": 0.0,
-      "wind_kmh": 9.6,
+      "wind_kmh": 0.0,
       "streak_adj": 0.0,
       "win_streak1": -1,
       "win_streak2": -1,
@@ -352,12 +352,376 @@
       "load1": 0,
       "load2": 0,
       "steam": "",
-      "n_books": 6,
+      "n_books": 5,
       "eff_min_edge": 6.0
     }
   ],
-  "recent_history": [],
-  "live_matches": [],
+  "recent_history": [
+    {
+      "date": "2026-05-21",
+      "p1": "Jaume Munar",
+      "p2": "Hubert Hurkacz",
+      "bet_on": "Hubert Hurkacz",
+      "price": 1.77,
+      "stake": 50.0,
+      "edge": 11.0,
+      "tier": "B",
+      "surface": "clay",
+      "tour": "大滿貫",
+      "result": "P"
+    },
+    {
+      "date": "2026-05-21",
+      "p1": "Ignacio Buse",
+      "p2": "Andrey Rublev",
+      "bet_on": "Andrey Rublev",
+      "price": 1.69,
+      "stake": 70.0,
+      "edge": 13.0,
+      "tier": "A",
+      "surface": "clay",
+      "tour": "大滿貫",
+      "result": "P"
+    },
+    {
+      "date": "2026-05-21",
+      "p1": "Tallon Griekspoor",
+      "p2": "Matteo Arnaldi",
+      "bet_on": "Tallon Griekspoor",
+      "price": 2.0,
+      "stake": 86.0,
+      "edge": 17.5,
+      "tier": "A",
+      "surface": "clay",
+      "tour": "大滿貫",
+      "result": "P"
+    },
+    {
+      "date": "2026-05-21",
+      "p1": "Felix Gill",
+      "p2": "Kyrian Jacquet",
+      "bet_on": "Felix Gill",
+      "price": 2.5,
+      "stake": 125.0,
+      "edge": 29.1,
+      "tier": "A",
+      "surface": "clay",
+      "tour": "大滿貫",
+      "result": "P"
+    },
+    {
+      "date": "2026-05-21",
+      "p1": "Aliaksandra Sasnovich",
+      "p2": "Marina Bassols Ribera",
+      "bet_on": "Marina Bassols Ribera",
+      "price": 3.71,
+      "stake": 119.0,
+      "edge": 37.4,
+      "tier": "A",
+      "surface": "clay",
+      "tour": "大滿貫",
+      "result": "P"
+    }
+  ],
+  "live_matches": [
+    {
+      "home": "Jaime Faria",
+      "away": "Lukas Neumayer",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 1.28,
+      "best_away": 3.95,
+      "drift": 26.8
+    },
+    {
+      "home": "Borna Gojo",
+      "away": "Jurij Rodionov",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.1,
+      "best_away": 1.79,
+      "drift": -7.0
+    },
+    {
+      "home": "Roberto Carballes Baena",
+      "away": "Hugo Dellien",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.58,
+      "best_away": 1.53,
+      "drift": -3.2
+    },
+    {
+      "home": "Emilio Nava",
+      "away": "Pedro Martinez",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 1.5,
+      "best_away": 2.94,
+      "drift": 5.3
+    },
+    {
+      "home": "Pierre-Hugues Herbert",
+      "away": "Leandro Riedi",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 3.4,
+      "best_away": 1.33,
+      "drift": -6.1
+    },
+    {
+      "home": "Vilius Gaubas",
+      "away": "Pablo Llamas Ruiz",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.6,
+      "best_away": 1.57,
+      "drift": -4.5
+    },
+    {
+      "home": "Darwin Blanch",
+      "away": "Luka Pavlovic",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 1.54,
+      "best_away": 2.62,
+      "drift": 3.8
+    },
+    {
+      "home": "Felix Gill",
+      "away": "Kyrian Jacquet",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.48,
+      "best_away": 1.63,
+      "drift": -29.2
+    },
+    {
+      "home": "Alexander Bublik",
+      "away": "Jan-Lennard Struff",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 1.29,
+      "best_away": 4.05,
+      "drift": 11.0
+    },
+    {
+      "home": "Alexandre Muller",
+      "away": "Stefanos Tsitsipas",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 5.42,
+      "best_away": 1.23,
+      "drift": -11.2
+    },
+    {
+      "home": "Ignacio Buse",
+      "away": "Andrey Rublev",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.28,
+      "best_away": 1.69,
+      "drift": 12.5
+    },
+    {
+      "home": "Daniel Merida Aguilar",
+      "away": "Ben Shelton",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 4.05,
+      "best_away": 1.27,
+      "drift": -11.5
+    },
+    {
+      "home": "Vit Kopriva",
+      "away": "Corentin Moutet",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.33,
+      "best_away": 1.68,
+      "drift": null
+    },
+    {
+      "home": "Felix Auger-Aliassime",
+      "away": "Daniel Altmaier",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 1.3,
+      "best_away": 3.9,
+      "drift": 7.2
+    },
+    {
+      "home": "Giovanni Mpetshi Perricard",
+      "away": "Novak Djokovic",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 6.97,
+      "best_away": 1.17,
+      "drift": -3.2
+    },
+    {
+      "home": "Jaume Munar",
+      "away": "Hubert Hurkacz",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.15,
+      "best_away": 1.76,
+      "drift": 10.5
+    },
+    {
+      "home": "Sebastian Ofner",
+      "away": "Luciano Darderi",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 3.36,
+      "best_away": 1.39,
+      "drift": -7.6
+    },
+    {
+      "home": "Tallon Griekspoor",
+      "away": "Matteo Arnaldi",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "ATP French Open",
+      "last_update": null,
+      "best_home": 2.03,
+      "best_away": 1.88,
+      "drift": -18.2
+    },
+    {
+      "home": "Ashlyn Krueger",
+      "away": "Mary Stoiana",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 2.03,
+      "best_away": 2.1,
+      "drift": -4.1
+    },
+    {
+      "home": "Aliaksandra Sasnovich",
+      "away": "Marina Bassols Ribera",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 1.3,
+      "best_away": 3.71,
+      "drift": 37.8
+    },
+    {
+      "home": "Guiomar Maristany",
+      "away": "Kaitlin Quevedo",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 2.05,
+      "best_away": 1.8,
+      "drift": -13.6
+    },
+    {
+      "home": "Harmony Tan",
+      "away": "Linda Fruhvirtova",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 2.52,
+      "best_away": 1.55,
+      "drift": -5.9
+    },
+    {
+      "home": "Susan Bandecchi",
+      "away": "Viktoria Hruncakova",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 1.74,
+      "best_away": 2.22,
+      "drift": 6.0
+    },
+    {
+      "home": "Lulu Sun",
+      "away": "Claire Liu",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 2.52,
+      "best_away": 1.57,
+      "drift": -2.8
+    },
+    {
+      "home": "Katarina Zavatska",
+      "away": "Lucia Bronzetti",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 2.26,
+      "best_away": 1.67,
+      "drift": -16.6
+    },
+    {
+      "home": "Rebecca Sramkova",
+      "away": "Maria Lourdes Carle",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 1.37,
+      "best_away": 3.2,
+      "drift": 11.9
+    },
+    {
+      "home": "Polina Kudermetova",
+      "away": "Xiyu Wang",
+      "home_score": "",
+      "away_score": "",
+      "sport_title": "WTA French Open",
+      "last_update": null,
+      "best_home": 2.19,
+      "best_away": 1.71,
+      "drift": 2.7
+    }
+  ],
   "game_preds": {
     "jaime faria|lukas neumayer": {
       "p1": "Jaime Faria",
@@ -368,7 +732,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.6
+      "exp_games": 41.9
     },
     "borna gojo|jurij rodionov": {
       "p1": "Borna Gojo",
@@ -379,7 +743,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.5
+      "exp_games": 41.9
     },
     "roberto carballes baena|hugo dellien": {
       "p1": "Roberto Carballes Baena",
@@ -390,7 +754,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.2
+      "exp_games": 42.1
     },
     "emilio nava|pedro martinez": {
       "p1": "Emilio Nava",
@@ -401,7 +765,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 41.6
     },
     "pierre-hugues herbert|leandro riedi": {
       "p1": "Pierre-Hugues Herbert",
@@ -412,7 +776,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 38.7
+      "exp_games": 38.6
     },
     "vilius gaubas|pablo llamas ruiz": {
       "p1": "Vilius Gaubas",
@@ -423,7 +787,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.8
     },
     "darwin blanch|luka pavlovic": {
       "p1": "Darwin Blanch",
@@ -434,7 +798,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.2
     },
     "felix gill|kyrian jacquet": {
       "p1": "Felix Gill",
@@ -445,7 +809,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.1
+      "exp_games": 42.2
     },
     "alexander bublik|jan-lennard struff": {
       "p1": "Alexander Bublik",
@@ -456,7 +820,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.0
+      "exp_games": 42.1
     },
     "alexandre muller|stefanos tsitsipas": {
       "p1": "Alexandre Muller",
@@ -467,7 +831,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
+      "exp_games": 40.8
     },
     "ignacio buse|andrey rublev": {
       "p1": "Ignacio Buse",
@@ -489,18 +853,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
-    },
-    "vit kopriva|corentin moutet": {
-      "p1": "Vit Kopriva",
-      "p2": "Corentin Moutet",
-      "p1_key": "vit_kopriva",
-      "p2_key": "corentin_moutet",
-      "model_p1": 0.5889,
-      "surface": "clay",
-      "tour_level": "grand_slam",
-      "best_of": 5,
-      "exp_games": 41.1
+      "exp_games": 40.8
     },
     "felix auger-aliassime|daniel altmaier": {
       "p1": "Felix Auger-Aliassime",
@@ -511,7 +864,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.6
     },
     "giovanni mpetshi perricard|novak djokovic": {
       "p1": "Giovanni Mpetshi Perricard",
@@ -544,7 +897,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.6
+      "exp_games": 41.8
     },
     "tallon griekspoor|matteo arnaldi": {
       "p1": "Tallon Griekspoor",
@@ -555,7 +908,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.6
+      "exp_games": 40.5
     },
     "ashlyn krueger|mary stoiana": {
       "p1": "Ashlyn Krueger",
@@ -566,7 +919,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.6
+      "exp_games": 40.9
     },
     "aliaksandra sasnovich|marina bassols ribera": {
       "p1": "Aliaksandra Sasnovich",
@@ -577,7 +930,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.1
+      "exp_games": 41.3
     },
     "guiomar maristany|kaitlin quevedo": {
       "p1": "Guiomar Maristany",
@@ -588,7 +941,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.5
+      "exp_games": 41.1
     },
     "harmony tan|linda fruhvirtova": {
       "p1": "Harmony Tan",
@@ -599,7 +952,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.2
+      "exp_games": 40.5
     },
     "susan bandecchi|viktoria hruncakova": {
       "p1": "Susan Bandecchi",
@@ -610,7 +963,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.5
+      "exp_games": 41.6
     },
     "lulu sun|claire liu": {
       "p1": "Lulu Sun",
@@ -621,7 +974,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.0
+      "exp_games": 41.4
     },
     "katarina zavatska|lucia bronzetti": {
       "p1": "Katarina Zavatska",
@@ -632,7 +985,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.0
+      "exp_games": 40.9
     },
     "rebecca sramkova|maria lourdes carle": {
       "p1": "Rebecca Sramkova",
@@ -643,7 +996,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.5
+      "exp_games": 39.9
     },
     "polina kudermetova|xiyu wang": {
       "p1": "Polina Kudermetova",
@@ -654,7 +1007,9 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.1
+      "exp_games": 41.3
     }
-  }
+  },
+  "live_updated_at": "2026-05-21 23:11 (台灣時間)",
+  "live_updated_ts": 1779376286
 }
