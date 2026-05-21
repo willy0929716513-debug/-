@@ -710,7 +710,7 @@ function renderPick(p){
   ].filter(Boolean).join('');
   const p1last=p.p1?p.p1.split(' ').pop():p.p1;
   const p2last=p.p2?p.p2.split(' ').pop():p.p2;
-  const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:"\';
+  const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
   return `<div class="pick tier-${tier}">
     <div class="pick-head">
       <span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span>
