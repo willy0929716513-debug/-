@@ -1645,9 +1645,10 @@ def parse_odds(raw: List[dict]) -> Dict[str, dict]:
             "home": home, "away": away,
             "best_home": round(best_h, 3), "best_away": round(best_a, 3),
             "dv_p_home": round(dv_h, 4),  "dv_p_away": round(1.0 - dv_h, 4),
-            "n_books":   len(hp),
-            "sport":     game.get("_sport", ""),
-            "commence":  game.get("commence_time", ""),
+            "n_books":     len(hp),
+            "sport":       game.get("_sport", ""),
+            "sport_title": game.get("sport_title", ""),
+            "commence":    game.get("commence_time", ""),
         }
     log.info("Parsed odds for %d matches", len(out))
     return out
@@ -1774,6 +1775,8 @@ def generate_picks(matches: List[dict],
             "surface_emoji":  surface_emoji,
             "tour":           TOUR_META.get(m["tour_level"], {}).get("name", m["tour_level"]),
             "tour_level":     m["tour_level"],
+            "tournament":     m.get("tournament", ""),
+            "sport_title":    m.get("sport_title", ""),
             "surface":        m["surface"],
             "p1":             odds_info["home"],
             "p2":             odds_info["away"],
@@ -2033,6 +2036,8 @@ def run() -> None:
             "p1_key": p1_key, "p2_key": p2_key,
             "surface": surface, "tour_level": t_lvl, "best_of": best_of,
             "odds_info": odds_info, "pred": pred,
+            "tournament": tournament,
+            "sport_title": odds_info.get("sport_title", ""),
         })
 
     log.info("Processed %d matches", len(matches))

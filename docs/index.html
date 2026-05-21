@@ -271,11 +271,27 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
   display:inline-flex;align-items:center;
   font-size:.72rem;font-weight:700;
   padding:3px 10px;border-radius:6px;
-  background:var(--surface);color:var(--muted);margin-bottom:10px;
+  background:var(--surface);color:var(--muted);margin-bottom:12px;
 }
 .day-tag.today{background:rgba(61,214,140,.1);color:var(--green)}
 .day-tag.tomorrow{background:rgba(91,141,238,.1);color:var(--acc)}
-.day-group{margin-bottom:18px}
+.day-group{margin-bottom:22px}
+
+/* ─── TOURNAMENT GROUP ─── */
+.tourn-group{margin-bottom:16px}
+.tourn-hd{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;margin-bottom:8px;
+  background:var(--surface);border-radius:8px;
+  border-left:3px solid var(--border);
+}
+.tourn-hd.surf-clay{border-left-color:#e87461}
+.tourn-hd.surf-grass{border-left-color:#58d68d}
+.tourn-hd.surf-hard{border-left-color:#5dade2}
+.t-icon{font-size:.88rem;flex-shrink:0}
+.t-name{font-size:.82rem;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-level{font-size:.68rem;color:var(--muted);background:var(--card);padding:2px 7px;border-radius:4px;white-space:nowrap}
+.t-count{font-size:.68rem;color:var(--muted);white-space:nowrap}
 
 /* ─── EMPTY / FOOTER ─── */
 .empty{text-align:center;padding:32px;color:var(--muted);font-size:.85rem;line-height:1.8}
@@ -525,6 +541,40 @@ function cmp(a, b, higherBetter){
   return [c1better?'better':c2better?'worse':'', c2better?'better':c1better?'worse':''];
 }
 
+/* ── tournament name prettifier ── */
+const TOURN_ZH = {
+  french_open:       '法國公開賽', roland_garros: '法國公開賽',
+  wimbledon:         '溫布頓',
+  us_open:           '美國公開賽',
+  australian_open:   '澳洲公開賽',
+  madrid:            '馬德里大師賽', madrid_open: '馬德里大師賽',
+  monte_carlo:       '蒙地卡羅大師賽',
+  rome:              '羅馬大師賽', italian_open: '羅馬大師賽',
+  miami:             '邁阿密大師賽',
+  indian_wells:      '印地安泉大師賽',
+  toronto:           '多倫多大師賽', canada: '加拿大大師賽',
+  cincinnati:        '辛辛那提大師賽',
+  shanghai:          '上海大師賽',
+  paris:             '巴黎大師賽',
+  halle:             '哈雷草地賽',
+  queens:            '女王盃',
+  barcelona:         '巴塞隆納公開賽',
+  estoril:           '葡萄牙公開賽',
+  geneva:            '日內瓦公開賽',
+  lyon:              '里昂公開賽',
+  hamburg:           '漢堡公開賽',
+  eastbourne:        '伊斯特本草地賽',
+};
+
+function fmtTournName(p){
+  const tk  = (p.tournament||'').toLowerCase().replace(/-/g,'_');
+  const ttl = (p.sport_title||'').replace(/^tennis\s+/i,'').trim();
+  for(const [k,zh] of Object.entries(TOURN_ZH)){
+    if(tk.includes(k)) return zh + (ttl ? '' : '');
+  }
+  return ttl || p.tour || tk || '其他賽事';
+}
+
 /* ── day label ── */
 function dayLabel(iso){
   if(!iso) return {key:'?', label:'日期未知', cls:''};
@@ -596,7 +646,6 @@ function renderPick(p){
     <div class="pick-head">
       <span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span>
       <span class="tag ${surf}">${SURF[surf]||surf}</span>
-      <span class="tag tour">${p.tour||''}</span>
       <span class="tier-badge">${tierLbl}</span>
     </div>
     <div class="conf-row">
@@ -678,21 +727,44 @@ async function load(){
     }).join('');
   }
 
-  /* picks */
+  /* picks — grouped by day → tournament */
   const picks = data.picks || [];
   if(!picks.length){
     q('picks').innerHTML = '<div class="empty">今日無符合條件的推薦<br><small>模型尚未找到足夠邊際值的機會</small></div>';
   } else {
-    const groups = {};
+    const surfIcon = {clay:'🟤', grass:'🟢', hard:'🔵'};
+    /* build day → tournament → picks tree */
+    const dayMap = {};
     picks.forEach(p => {
-      const dl = dayLabel(p.commence);
-      if(!groups[dl.key]) groups[dl.key] = {meta:dl, items:[]};
-      groups[dl.key].items.push(p);
+      const dl   = dayLabel(p.commence);
+      const tKey = p.tournament || p.sport_title || p.tour || 'other';
+      if(!dayMap[dl.key]) dayMap[dl.key] = {meta:dl, tMap:{}};
+      if(!dayMap[dl.key].tMap[tKey]) dayMap[dl.key].tMap[tKey] = {
+        tKey, surface: p.surface||'hard', tour: p.tour||'', items:[], p
+      };
+      dayMap[dl.key].tMap[tKey].items.push(p);
     });
-    q('picks').innerHTML = Object.values(groups).map(g => {
+
+    q('picks').innerHTML = Object.values(dayMap).map(dg => {
+      const tournBlocks = Object.values(dg.tMap).map(tg => {
+        const name   = fmtTournName(tg.p);
+        const icon   = surfIcon[tg.surface] || '⚪';
+        const sfCls  = 'surf-'+(tg.surface||'hard');
+        const cnt    = tg.items.length;
+        return `<div class="tourn-group">
+          <div class="tourn-hd ${sfCls}">
+            <span class="t-icon">${icon}</span>
+            <span class="t-name">${name}</span>
+            <span class="t-level">${tg.tour}</span>
+            <span class="t-count">${cnt} 場</span>
+          </div>
+          ${tg.items.map(renderPick).join('')}
+        </div>`;
+      }).join('');
+
       return `<div class="day-group">
-        <div class="day-tag ${g.meta.cls}">${g.meta.label}&nbsp;&nbsp;${g.meta.key}</div>
-        ${g.items.map(renderPick).join('')}
+        <div class="day-tag ${dg.meta.cls}">${dg.meta.label}&nbsp;&nbsp;${dg.meta.key}</div>
+        ${tournBlocks}
       </div>`;
     }).join('');
   }
