@@ -929,7 +929,7 @@ def compute_elo_from_sackmann(all_matches: List[dict]) -> None:
         lname = (row.get("loser_name") or "").lower()
         wkey  = norm_player(wname)
         lkey  = norm_player(lname)
-        if wkey not in all_db and lkey not in all_db:
+        if not wkey or not lkey:
             continue
 
         surf_raw = (row.get("surface") or "hard").lower()
@@ -950,12 +950,10 @@ def compute_elo_from_sackmann(all_matches: List[dict]) -> None:
         elos[wkey][surf] = ew + k * (1.0 - exp_w)
         elos[lkey][surf] = el - k * (1.0 - exp_w)
 
-    updated = 0
+    # Store ELO for ALL computed players (not just those in static dict)
     for key, surf_elos in elos.items():
-        if key in all_db:
-            _LIVE_ELO[key] = {s: round(v, 1) for s, v in surf_elos.items()}
-            updated += 1
-    log.info("compute_elo_from_sackmann: %d players", updated)
+        _LIVE_ELO[key] = {s: round(v, 1) for s, v in surf_elos.items()}
+    log.info("compute_elo_from_sackmann: %d players", len(elos))
 
 
 def load_odds_prev() -> Dict[str, dict]:
@@ -1397,6 +1395,18 @@ def load_sackmann_data(all_matches: Optional[List[dict]] = None) -> None:
         log.warning("load_sackmann_data: no match data — using static stats only")
         return
     all_players = {**ATP_STATS, **WTA_STATS}
+
+    # Also collect players from Sackmann data who are NOT in the static list
+    # (e.g. qualifiers, lower-ranked players currently in ATP/WTA draws)
+    extra_players: Dict[str, str] = {}   # key → full_name
+    for row in all_matches:
+        for field in ("winner_name", "loser_name"):
+            name = (row.get(field) or "").strip()
+            if not name:
+                continue
+            key = norm_player(name.lower())
+            if key not in all_players and key not in extra_players:
+                extra_players[key] = name
     ok = 0
     for key, pdata in all_players.items():
         full_name = pdata.get("full_name", "")
@@ -1411,7 +1421,22 @@ def load_sackmann_data(all_matches: Optional[List[dict]] = None) -> None:
                     rec["rtpt_won"] = profile["rtpt_won"]
                 _RECENT_STATS[key] = rec
             ok += 1
-    log.info("load_sackmann_data: %d/%d players profiled", ok, len(all_players))
+    log.info("load_sackmann_data: %d/%d static players profiled", ok, len(all_players))
+
+    # Profile extra players (qualifiers / lower-ranked not in static list)
+    extra_ok = 0
+    for key, full_name in extra_players.items():
+        profile = build_player_profile(all_matches, full_name, n=20)
+        if profile:
+            _SACKMANN_PROFILES[key] = profile
+            if profile.get("svpt_won"):
+                rec2: dict = {"svpt_won": profile["svpt_won"]}
+                if profile.get("rtpt_won"):
+                    rec2["rtpt_won"] = profile["rtpt_won"]
+                _RECENT_STATS[key] = rec2
+            extra_ok += 1
+    log.info("load_sackmann_data: +%d/%d extra players profiled", extra_ok, len(extra_players))
+
     # Compute live surface ELO from match history (replaces static fetch_ta_elo)
     compute_elo_from_sackmann(all_matches)
 
