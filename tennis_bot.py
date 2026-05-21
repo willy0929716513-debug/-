@@ -1610,6 +1610,9 @@ ODDS_SPORTS = [
 def safe_get(url: str, params: dict = None, timeout: int = 15) -> Optional[dict]:
     try:
         r = requests.get(url, params=params, timeout=timeout)
+        if r.status_code == 404:
+            log.debug("safe_get %s: 404 (inactive)", url.split("?")[0])
+            return None
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -2059,8 +2062,9 @@ def write_json(picks: List[dict], stats: dict, history: dict,
                game_preds: dict, now: datetime.datetime) -> None:
     os.makedirs("docs", exist_ok=True)
     payload = {
-        "generated_at":  now.strftime("%Y-%m-%d %H:%M") + " (台灣時間)",
-        "date":          now.strftime("%Y-%m-%d"),
+        "generated_at":     now.strftime("%Y-%m-%d %H:%M") + " (台灣時間)",
+        "generated_at_iso": now.strftime("%Y-%m-%dT%H:%M:%S+08:00"),
+        "date":             now.strftime("%Y-%m-%d"),
         "model_version": "v3.2 — 15-factor: ELO(live)+BO5+SurfaceH2H+1stSrv+BPconv+Cond+KellyTier",
         "stats":         stats,
         "picks":         picks,

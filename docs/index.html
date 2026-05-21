@@ -51,7 +51,12 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .btn-ghost:hover{color:var(--text);border-color:var(--muted)}
 .btn-live{background:rgba(239,84,84,.15);color:var(--red);border:1px solid rgba(239,84,84,.35)}
 .btn-live:hover{background:rgba(239,84,84,.28)}
-.btn-sm{padding:4px 10px;font-size:.74rem}
+.btn-sm{padding:5px 12px;font-size:.78rem}
+.btn-icon{padding:6px 9px;font-size:.9rem;border-radius:8px}
+.btn-group{display:flex;gap:1px}
+.btn-group .btn:first-child{border-radius:8px 0 0 8px}
+.btn-group .btn:last-child{border-radius:0 8px 8px 0}
+.hdr-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
 
 /* ─── MODAL ─── */
 .overlay{
@@ -326,6 +331,7 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 
 /* match start time */
 .match-time{font-size:.65rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:4px;white-space:nowrap;font-family:monospace}
+.soon-badge{font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:4px;background:rgba(245,166,35,.15);color:var(--gold);border:1px solid rgba(245,166,35,.4);animation:blink 1.8s infinite;white-space:nowrap}
 
 /* ─── TABS ─── */
 .tab-bar{
@@ -378,8 +384,10 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 @media(max-width:600px){
   .stats-bar{grid-template-columns:repeat(2,1fr)}
   .pick-metrics{grid-template-columns:repeat(2,1fr)}
-  .header-right .btn span{display:none}
   .run-status{display:none}
+  .hdr-sep{display:none}
+  #btn-run{font-size:.7rem;padding:5px 8px}
+  #btn-live{font-size:.7rem;padding:5px 8px}
 }
 @media(max-width:400px){
   .ps-head,.ps-row{grid-template-columns:90px 1fr 1fr}
@@ -393,14 +401,17 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
   <span style="font-size:1.4rem">🎾</span>
   <h1>Tennis Predictor <small style="font-size:.65em;color:var(--muted);font-weight:400">v3</small></h1>
   <div class="header-right">
-    <div class="run-status">
+    <div class="run-status" id="run-status-block" title="點此查看上次執行狀態">
       <div class="dot" id="st-dot"></div>
       <span id="st-txt">—</span>
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="重新整理">🔄 <span>重整</span></button>
-    <button class="btn btn-live" id="btn-live" onclick="run('live')">&#128308; <span>場中更新</span></button>
-    <button class="btn btn-primary" id="btn-run" onclick="run('full')">&#9889; <span>立即執行</span></button>
-    <button class="btn btn-ghost" onclick="openSettings()">&#9881;&#65039;</button>
+    <div class="hdr-sep"></div>
+    <button class="btn btn-ghost btn-icon" onclick="refreshData()" title="重新整理資料 (R)">🔄</button>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="btn-run" onclick="run('full')" title="重新執行完整預測">⚡ 執行預測</button>
+      <button class="btn btn-live btn-sm" id="btn-live" onclick="run('live')" title="抓取場中即時比分">🔴 場中</button>
+    </div>
+    <button class="btn btn-ghost btn-icon" onclick="openSettings()" title="設定">&#9881;&#65039;</button>
   </div>
 </header>
 
@@ -639,6 +650,24 @@ function setNum(id,text,cls=''){
   const el=q(id); el.textContent=text; el.className='num '+cls;
 }
 
+let liveEmptyCount = 0;
+
+function relTime(iso){
+  if(!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if(diff < 60)  return '剛剛';
+  if(diff < 3600) return Math.floor(diff/60) + ' 分鐘前';
+  if(diff < 86400) return Math.floor(diff/3600) + ' 小時前';
+  return Math.floor(diff/86400) + ' 天前';
+}
+
+function soonBadge(iso){
+  if(!iso) return '';
+  const mins = Math.floor((new Date(iso) - Date.now()) / 60000);
+  if(mins > 0 && mins <= 90) return `<span class="soon-badge">${mins < 30 ? '即將開賽' : mins+'分後'}</span>`;
+  return '';
+}
+
 function confScore(p){
   if(p.conf != null) return Math.round(p.conf);
   const edge = p.edge ?? 0;
@@ -725,7 +754,8 @@ function renderPick(p){
       <span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span>
       <span class="tag ${surf}">${SURF[surf]||surf}</span>
       <span class="tier-badge">${tierLbl}</span>
-      ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)} TW</span>`:''}
+      ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)}</span>`:''}
+      ${soonBadge(p.commence)}
     </div>
     <div class="conf-row">
       <div class="conf-meta"><span>模型信心指數</span><strong class="${cc}">${conf} / 100</strong></div>
@@ -759,7 +789,9 @@ async function load(){
     return;
   }
 
-  q('footer').textContent = '最後更新：'+(data.generated_at||'—');
+  const genAt  = data.generated_at || '—';
+  const genIso = data.generated_at_iso || '';
+  q('footer').innerHTML = '最後更新：' + genAt + (genIso ? `　<span style="color:var(--muted);font-size:.68rem">(${relTime(genIso)})</span>` : '');
 
   const st=data.stats||{};
   const wr=st.win_rate??0, roi=st.roi??0, pnl=st.pnl??0;
@@ -771,15 +803,17 @@ async function load(){
   const lives = data.live_matches || [];
   const badge = q('live-badge');
   if(lives.length){
+    liveEmptyCount = 0;
     badge.textContent = lives.length;
     badge.style.display = '';
     q('live-empty').style.display = 'none';
     const upd = data.live_updated_at ? data.live_updated_at.replace(' (台灣時間)','') : '';
-    q('live-updated').textContent = upd ? '更新 '+upd : '';
+    const updTs = data.live_updated_ts ? relTime(new Date(data.live_updated_ts*1000).toISOString()) : '';
+    q('live-updated').textContent = upd ? '更新 '+upd+(updTs?' ('+updTs+')':'') : '';
     q('live-list').innerHTML = lives.map(m => {
       const hs=m.home_score||'', as=m.away_score||'';
       const tourn=(m.sport_title||'').replace(/^Tennis\s+/i,'');
-      const updTime=m.last_update?new Date(m.last_update).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}):'';
+      const updTime=m.last_update?new Date(m.last_update).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}):'';
       return `<div class="lm-card"><div class="lm-dot"></div><div class="lm-body">
         ${tourn?`<div class="lm-tournament">${tourn}</div>`:''}
         <div class="lm-row"><span class="lm-player">${m.home||'?'}</span><span class="lm-sc ${hs?'':'empty'}">${hs||'—'}</span></div>
@@ -788,10 +822,13 @@ async function load(){
       </div></div>`;
     }).join('');
   } else {
+    liveEmptyCount++;
     badge.style.display = 'none';
-    q('live-empty').style.display = '';
-    q('live-list').innerHTML = '';
-    q('live-updated').textContent = '';
+    if(liveEmptyCount >= 3){
+      q('live-empty').style.display = '';
+      q('live-list').innerHTML = '';
+      q('live-updated').textContent = '';
+    }
   }
 
   const picks = data.picks || [];
@@ -831,6 +868,11 @@ load();
 pollStatus();
 setInterval(load, 5*60*1000);
 setInterval(pollStatus, 30*1000);
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT')
+    refreshData();
+});
 </script>
 </body>
 </html>
