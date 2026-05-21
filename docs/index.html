@@ -5,92 +5,160 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>🎾 Tennis Predictor</title>
 <style>
-  :root{
-    --bg:#0f1117;--card:#1a1d27;--card2:#22263a;
-    --acc:#4f8ef7;--green:#2ecc71;--red:#e74c3c;
-    --clay:#c0392b;--grass:#27ae60;--hard:#2980b9;
-    --text:#e8eaf0;--sub:#8892b0;--border:#2d3250;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
-  header{background:linear-gradient(135deg,#1a1d27,#22263a);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
-  header h1{font-size:1.25rem;font-weight:700;letter-spacing:.5px}
-  header .sub{font-size:.8rem;color:var(--sub);margin-left:auto}
-  .container{max-width:960px;margin:0 auto;padding:20px 16px}
-  /* STATS BAR */
-  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
-  .stat-card .label{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-  .stat-card .val{font-size:1.5rem;font-weight:700}
-  .stat-card .val.green{color:var(--green)}
-  .stat-card .val.red{color:var(--red)}
-  /* SECTION */
-  .section{margin-bottom:28px}
-  .section-title{font-size:.85rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-  .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
-  /* PICK CARD */
-  .pick-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
-  .pick-card:hover{border-color:var(--acc)}
-  .pick-card.tier-A{border-left:3px solid #f39c12}
-  .pick-card.tier-B{border-left:3px solid var(--acc)}
-  .pick-card.tier-C{border-left:3px solid var(--sub)}
-  .pick-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-  .pick-header .matchup{font-size:1.05rem;font-weight:700;flex:1}
-  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600}
-  .badge.clay{background:rgba(192,57,43,.2);color:#e74c3c;border:1px solid rgba(192,57,43,.4)}
-  .badge.grass{background:rgba(39,174,96,.2);color:#2ecc71;border:1px solid rgba(39,174,96,.4)}
-  .badge.hard{background:rgba(41,128,185,.2);color:#3498db;border:1px solid rgba(41,128,185,.4)}
-  .badge.tour{background:rgba(79,142,247,.15);color:var(--acc);border:1px solid rgba(79,142,247,.3)}
-  .pick-body{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .pick-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
-  .pick-row:last-child{border-bottom:none}
-  .pick-row .lbl{font-size:.78rem;color:var(--sub)}
-  .pick-row .val{font-size:.88rem;font-weight:600}
-  .bet-box{grid-column:1/-1;background:var(--card2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-  .bet-box .bet-name{font-size:.95rem;font-weight:700;color:#f39c12}
-  .bet-box .bet-meta{display:flex;gap:16px;align-items:center}
-  .bet-box .price{font-size:1.1rem;font-weight:700;color:var(--green)}
-  .bet-box .edge{font-size:.82rem;color:var(--acc);background:rgba(79,142,247,.15);padding:3px 8px;border-radius:6px}
-  .bet-box .stake{font-size:.82rem;color:var(--sub)}
-  /* LIVE */
-  .live-card{background:var(--card);border:1px solid #e74c3c44;border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .live-matchup{font-weight:600;flex:1}
-  .live-bet{color:#f39c12;font-size:.85rem;font-weight:600}
-  .live-drift{font-size:.78rem;padding:3px 8px;border-radius:6px}
-  .live-drift.up{background:rgba(46,204,113,.15);color:var(--green)}
-  .live-drift.dn{background:rgba(231,76,60,.15);color:var(--red)}
-  /* HISTORY */
-  .hist-table{width:100%;border-collapse:collapse}
-  .hist-table th{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
-  .hist-table td{padding:10px 12px;font-size:.85rem;border-bottom:1px solid var(--border)}
-  .hist-table tr:last-child td{border-bottom:none}
-  .result-W{color:var(--green);font-weight:700}
-  .result-L{color:var(--red);font-weight:700}
-  .result-P{color:var(--sub)}
-  .result-null{color:var(--sub);font-style:italic}
-  /* EMPTY */
-  .empty{text-align:center;padding:40px 20px;color:var(--sub);font-size:.9rem}
-  /* UPDATED */
-  .updated{font-size:.72rem;color:var(--sub);text-align:center;margin-top:24px;padding-bottom:32px}
-  /* RESPONSIVE */
-  @media(max-width:600px){
-    .stats-bar{grid-template-columns:repeat(2,1fr)}
-    .pick-body{grid-template-columns:1fr}
-  }
+:root{
+  --bg:#0f1117;--card:#1a1d27;--card2:#22263a;
+  --acc:#4f8ef7;--green:#2ecc71;--red:#e74c3c;
+  --text:#e8eaf0;--sub:#8892b0;--border:#2d3250;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#1a1d27,#22263a);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+header h1{font-size:1.2rem;font-weight:700}
+.header-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;border:none;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--acc);color:#fff}
+.btn-primary:hover{background:#3d7de8}
+.btn-primary:disabled{background:#2d3250;color:var(--sub);cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--sub);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--acc);color:var(--acc)}
+.btn-live{background:rgba(231,76,60,.2);color:var(--red);border:1px solid rgba(231,76,60,.4)}
+.btn-live:hover{background:rgba(231,76,60,.35)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:min(420px,92vw)}
+.modal h2{font-size:1.05rem;margin-bottom:6px}
+.modal p{font-size:.82rem;color:var(--sub);margin-bottom:18px;line-height:1.6}
+.modal label{display:block;font-size:.78rem;color:var(--sub);margin-bottom:6px}
+.modal input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s}
+.modal input:focus{border-color:var(--acc)}
+.modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:12px 18px;border-radius:10px;font-size:.85rem;font-weight:600;animation:slideUp .3s ease}
+.toast.ok{background:#27ae60;color:#fff}
+.toast.err{background:var(--red);color:#fff}
+.toast.info{background:var(--acc);color:#fff}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* STATUS BAR */
+.run-status{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--sub)}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-dot.running{background:#f39c12;animation:pulse 1s infinite}
+.status-dot.success{background:var(--green)}
+.status-dot.failure{background:var(--red)}
+.status-dot.idle{background:var(--sub)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* CONTAINER */
+.container{max-width:960px;margin:0 auto;padding:20px 16px}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.stat-card .label{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.stat-card .val{font-size:1.5rem;font-weight:700}
+.green{color:var(--green)}.red{color:var(--red)}
+
+/* SECTION */
+.section{margin-bottom:28px}
+.section-title{font-size:.85rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* PICK CARD */
+.pick-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
+.pick-card:hover{border-color:var(--acc)}
+.pick-card.tier-A{border-left:3px solid #f39c12}
+.pick-card.tier-B{border-left:3px solid var(--acc)}
+.pick-card.tier-C{border-left:3px solid var(--sub)}
+.pick-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.pick-header .matchup{font-size:1.05rem;font-weight:700;flex:1}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600}
+.badge.clay{background:rgba(192,57,43,.2);color:#e74c3c;border:1px solid rgba(192,57,43,.4)}
+.badge.grass{background:rgba(39,174,96,.2);color:#2ecc71;border:1px solid rgba(39,174,96,.4)}
+.badge.hard{background:rgba(41,128,185,.2);color:#3498db;border:1px solid rgba(41,128,185,.4)}
+.badge.tour{background:rgba(79,142,247,.15);color:var(--acc);border:1px solid rgba(79,142,247,.3)}
+.pick-body{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pick-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.pick-row:last-child{border-bottom:none}
+.pick-row .lbl{font-size:.78rem;color:var(--sub)}
+.pick-row .val{font-size:.88rem;font-weight:600}
+.bet-box{grid-column:1/-1;background:var(--card2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.bet-box .bet-name{font-size:.95rem;font-weight:700;color:#f39c12}
+.bet-box .bet-meta{display:flex;gap:16px;align-items:center}
+.bet-box .price{font-size:1.1rem;font-weight:700;color:var(--green)}
+.bet-box .edge{font-size:.82rem;color:var(--acc);background:rgba(79,142,247,.15);padding:3px 8px;border-radius:6px}
+.bet-box .stake{font-size:.82rem;color:var(--sub)}
+
+/* LIVE */
+.live-card{background:var(--card);border:1px solid #e74c3c44;border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s infinite;flex-shrink:0}
+.live-matchup{font-weight:600;flex:1}
+.live-bet{color:#f39c12;font-size:.85rem;font-weight:600}
+.live-drift{font-size:.78rem;padding:3px 8px;border-radius:6px}
+.live-drift.up{background:rgba(46,204,113,.15);color:var(--green)}
+.live-drift.dn{background:rgba(231,76,60,.15);color:var(--red)}
+
+/* HISTORY TABLE */
+.hist-table{width:100%;border-collapse:collapse}
+.hist-table th{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.hist-table td{padding:10px 12px;font-size:.85rem;border-bottom:1px solid var(--border)}
+.hist-table tr:last-child td{border-bottom:none}
+.result-W{color:var(--green);font-weight:700}
+.result-L{color:var(--red);font-weight:700}
+.result-P,.result-null{color:var(--sub)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--sub);font-size:.9rem}
+.updated{font-size:.72rem;color:var(--sub);text-align:center;margin-top:24px;padding-bottom:32px}
+@media(max-width:600px){
+  .stats-bar{grid-template-columns:repeat(2,1fr)}
+  .pick-body{grid-template-columns:1fr}
+  .header-actions .btn span{display:none}
+}
 </style>
 </head>
 <body>
+
+<!-- HEADER -->
 <header>
-  <span style="font-size:1.6rem">🎾</span>
+  <span style="font-size:1.5rem">🎾</span>
   <h1>Tennis Predictor</h1>
-  <span class="sub" id="gen-time">載入中...</span>
+  <div class="header-actions">
+    <div class="run-status" id="run-status">
+      <div class="status-dot idle" id="status-dot"></div>
+      <span id="status-text">—</span>
+    </div>
+    <button class="btn btn-live" id="btn-live" onclick="triggerWorkflow('live')">
+      🔴 <span>場中更新</span>
+    </button>
+    <button class="btn btn-primary" id="btn-run" onclick="triggerWorkflow('full')">
+      ⚡ <span>立即執行</span>
+    </button>
+    <button class="btn btn-ghost" onclick="openSettings()" title="設定 Token">⚙️</button>
+  </div>
 </header>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>⚙️ 設定 GitHub Token</h2>
+    <p>需要具有 <code>workflow</code> 權限的 Personal Access Token。<br>傲儲於瀏覽器 localStorage，不會上傳至任何地方。</p>
+    <label>GitHub Personal Access Token</label>
+    <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="clearToken()">&#128465; 清除</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal').style.display='none'">&#10005; 取消</button>
+      <button class="btn btn-primary" onclick="saveToken()">&#10003; 儲存</button>
+    </div>
+  </div>
+</div>
+
 <div class="container">
 
   <!-- STATS -->
-  <div class="stats-bar" id="stats-bar">
+  <div class="stats-bar">
     <div class="stat-card"><div class="label">已結算</div><div class="val" id="s-settled">—</div></div>
     <div class="stat-card"><div class="label">勝率</div><div class="val" id="s-wr">—</div></div>
     <div class="stat-card"><div class="label">ROI</div><div class="val" id="s-roi">—</div></div>
@@ -106,7 +174,7 @@
   <!-- PICKS -->
   <div class="section">
     <div class="section-title">📌 今日推薦</div>
-    <div id="picks-list"></div>
+    <div id="picks-list"><div class="empty">載入中...</div></div>
   </div>
 
   <!-- HISTORY -->
@@ -124,129 +192,227 @@
 </div>
 
 <script>
-const SURF_CN = {clay:'🟤 紅土',grass:'🟢 草地',hard:'🔵 硬地'};
+const OWNER  = 'willy0929716513-debug';
+const REPO   = '-';
+const BRANCH = 'claude/tennis-prediction-model-OhNiO';
+const WF     = 'tennis_bot.yml';
+const SURF_CN = {clay:'🟤 紅土', grass:'🟢 草地', hard:'🔵 硬地'};
 
+// ── TOKEN ──────────────────────────────────────────────────────────────────
+function getToken(){ return localStorage.getItem('gh_token') || ''; }
+function saveToken(){
+  const v = document.getElementById('token-input').value.trim();
+  if(!v){ toast('請輸入 Token','err'); return; }
+  localStorage.setItem('gh_token', v);
+  document.getElementById('modal').style.display = 'none';
+  toast('Token 已儲存 ✅','ok');
+}
+function clearToken(){
+  localStorage.removeItem('gh_token');
+  document.getElementById('token-input').value = '';
+  toast('Token 已清除','info');
+}
+function openSettings(){
+  const t = getToken();
+  document.getElementById('token-input').value = t ? t.slice(0,8)+'...' : '';
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal(e){
+  if(e.target.id === 'modal') document.getElementById('modal').style.display = 'none';
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type='info'){
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ── TRIGGER WORKFLOW ───────────────────────────────────────────────────────
+async function triggerWorkflow(mode='full'){
+  const token = getToken();
+  if(!token){
+    openSettings();
+    toast('請先設定 GitHub Token','err');
+    return;
+  }
+  const btn = mode==='live'
+    ? document.getElementById('btn-live')
+    : document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.textContent = mode==='live' ? '場中更新中...' : '執行中...';
+
+  try{
+    const res = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WF}/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ref: BRANCH, inputs: { mode } }),
+      }
+    );
+    if(res.status === 204){
+      toast('已觸發！約 1−2 分鐘後完成 ✅','ok');
+      setTimeout(()=>{ checkRunStatus(); load(); }, 8000);
+    } else if(res.status === 401){
+      toast('Token 無效，請重新設定','err');
+      openSettings();
+    } else if(res.status === 403){
+      toast('Token 缺少 workflow 權限','err');
+    } else {
+      const j = await res.json().catch(()=>({}));
+      toast('Error '+res.status+': '+(j.message||'unknown'),'err');
+    }
+  } catch(e){
+    toast('網路錯誤：'+e.message,'err');
+  } finally{
+    setTimeout(()=>{
+      btn.disabled = false;
+      btn.innerHTML = mode==='live' ? '🔴 <span>場中更新</span>' : '⚡ <span>立即執行</span>';
+    }, 5000);
+  }
+}
+
+// ── CHECK LATEST RUN STATUS ────────────────────────────────────────────────
+async function checkRunStatus(){
+  const token = getToken();
+  if(!token) return;
+  try{
+    const res = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?branch=${encodeURIComponent(BRANCH)}&per_page=1`,
+      { headers: { 'Authorization': `Bearer ${token}`,
+                   'Accept': 'application/vnd.github+json' } }
+    );
+    if(!res.ok) return;
+    const j = await res.json();
+    const run = (j.workflow_runs || [])[0];
+    if(!run) return;
+    const dot  = document.getElementById('status-dot');
+    const txt  = document.getElementById('status-text');
+    const st   = run.status;   // queued | in_progress | completed
+    const con  = run.conclusion; // success | failure | null
+    if(st === 'completed'){
+      dot.className = 'status-dot ' + (con==='success'?'success':'failure');
+      txt.textContent = con==='success' ? '上次執行成功 ✅' : '上次執行失敗 ❌';
+    } else {
+      dot.className = 'status-dot running';
+      txt.textContent = st==='in_progress' ? '執行中...' : '排隊中...';
+      setTimeout(checkRunStatus, 8000);
+    }
+  } catch(_){}
+}
+
+// ── RENDER PICKS ───────────────────────────────────────────────────────────
 async function load(){
   let data;
   try{
     const r = await fetch('picks_latest.json?t='+Date.now());
     data = await r.json();
-  }catch(e){
-    document.getElementById('picks-list').innerHTML='<div class="empty">⚠️ 無法載入資料，請稍後重試</div>';
+  } catch(e){
+    document.getElementById('picks-list').innerHTML='<div class="empty">⚠️ 無法載入資料</div>';
     return;
   }
 
-  // Header time
-  document.getElementById('gen-time').textContent = data.generated_at || '';
+  document.querySelector('header h1').nextSibling;
+  document.getElementById('updated-at').textContent =
+    '最後更新：' + (data.generated_at || '—');
 
   // Stats
   const st = data.stats || {};
-  const wr = st.win_rate ?? 0;
-  const roi = st.roi ?? 0;
-  const pnl = st.pnl ?? 0;
+  const wr = st.win_rate ?? 0, roi = st.roi ?? 0, pnl = st.pnl ?? 0;
   document.getElementById('s-settled').textContent = st.settled ?? 0;
-  const wrEl = document.getElementById('s-wr');
-  wrEl.textContent = wr ? wr.toFixed(1)+'%' : '—';
-  wrEl.className = 'val '+(wr>=55?'green':wr>0?'':'');
-  const roiEl = document.getElementById('s-roi');
-  roiEl.textContent = roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—';
-  roiEl.className = 'val '+(roi>0?'green':roi<0?'red':'');
-  const pnlEl = document.getElementById('s-pnl');
-  pnlEl.textContent = pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—';
-  pnlEl.className = 'val '+(pnl>0?'green':pnl<0?'red':'');
+  setVal('s-wr',  wr  ? wr.toFixed(1)+'%'  : '—', wr>=55?'green':'');
+  setVal('s-roi', roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—', roi>0?'green':roi<0?'red':'');
+  setVal('s-pnl', pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—', pnl>0?'green':pnl<0?'red':'');
 
   // Live
   const lives = (data.live_matches||[]).filter(m=>m.bet);
-  if(lives.length){
-    document.getElementById('live-section').style.display='';
-    const ll = document.getElementById('live-list');
-    ll.innerHTML = lives.map(m=>{
-      const drift = m.drift||0;
-      const driftClass = drift>0?'up':'dn';
-      const driftStr = (drift>0?'+':'')+drift.toFixed(1)+'%';
-      return `<div class="live-card">
-        <div class="live-dot"></div>
-        <div class="live-matchup">${m.home} vs ${m.away}</div>
-        <div class="live-bet">${m.bet}</div>
-        <span class="live-drift ${driftClass}">${driftStr} 賠率漂移</span>
-        <span style="font-size:.78rem;color:var(--sub)">${m.reason||''}</span>
-      </div>`;
-    }).join('');
-  }
+  document.getElementById('live-section').style.display = lives.length ? '' : 'none';
+  document.getElementById('live-list').innerHTML = lives.map(m=>{
+    const d = m.drift||0;
+    return `<div class="live-card">
+      <div class="live-dot"></div>
+      <div class="live-matchup">${m.home} vs ${m.away}</div>
+      <div class="live-bet">${m.bet}</div>
+      <span class="live-drift ${d>=0?'up':'dn'}">${d>0?'+':''}${d.toFixed(1)}% 賠率漂移</span>
+      <span style="font-size:.78rem;color:var(--sub)">${m.reason||''}</span>
+    </div>`;
+  }).join('');
 
   // Picks
   const picks = data.picks || [];
-  const pl = document.getElementById('picks-list');
-  if(!picks.length){
-    pl.innerHTML='<div class="empty">今日無符合條件的推薦<br><small style="font-size:.78rem">模型仍在尋找邊際值機會</small></div>';
-  } else {
-    pl.innerHTML = picks.map(p=>{
-      const surf = p.surface||'hard';
-      const surfLabel = SURF_CN[surf]||surf;
-      const bo = p.best_of===5?'BO5 大滿貫':'BO3';
-      const h2h = p.h2h_adj>0?`<span style="color:var(--green)">+${p.h2h_adj}%</span>`
-                 :p.h2h_adj<0?`<span style="color:var(--red)">${p.h2h_adj}%</span>`:'—';
-      return `<div class="pick-card tier-${p.tier}">
-        <div class="pick-header">
-          <span style="font-size:1.2rem">${p.star}</span>
-          <span class="matchup">${p.p1} <span style="color:var(--sub);font-size:.8rem">vs</span> ${p.p2}</span>
-          <span class="badge ${surf}">${surfLabel}</span>
-          <span class="badge tour">${p.tour||''}</span>
-          <span class="badge" style="background:rgba(255,255,255,.06);color:var(--sub);border:none">${bo}</span>
-        </div>
-        <div class="pick-body">
-          <div>
-            <div class="pick-row"><span class="lbl">模型勝率</span><span class="val">${p.model_p}%</span></div>
-            <div class="pick-row"><span class="lbl">市場隱含</span><span class="val">${p.dv_p}%</span></div>
-            <div class="pick-row"><span class="lbl">ELO 評分</span><span class="val">${p.elo1} / ${p.elo2}</span></div>
+  document.getElementById('picks-list').innerHTML = picks.length
+    ? picks.map(p=>{
+        const surf = p.surface||'hard';
+        const h2h = p.h2h_adj>0
+          ? `<span class="green">+${p.h2h_adj}%</span>`
+          : p.h2h_adj<0 ? `<span class="red">${p.h2h_adj}%</span>` : '—';
+        return `<div class="pick-card tier-${p.tier}">
+          <div class="pick-header">
+            <span style="font-size:1.15rem">${p.star}</span>
+            <span class="matchup">${p.p1} <span style="color:var(--sub);font-weight:400">vs</span> ${p.p2}</span>
+            <span class="badge ${surf}">${SURF_CN[surf]||surf}</span>
+            <span class="badge tour">${p.tour||''}</span>
+            <span class="badge" style="background:rgba(255,255,255,.06);color:var(--sub);border:none">${p.best_of===5?'BO5 大滿貫':'BO3'}</span>
           </div>
-          <div>
-            <div class="pick-row"><span class="lbl">P1 發球得分率</span><span class="val">${p.p1_sv_pct}%</span></div>
-            <div class="pick-row"><span class="lbl">P2 發球得分率</span><span class="val">${p.p2_sv_pct}%</span></div>
-            <div class="pick-row"><span class="lbl">H2H 修正</span><span class="val">${h2h}</span></div>
-          </div>
-          <div class="bet-box">
+          <div class="pick-body">
             <div>
-              <div style="font-size:.72rem;color:var(--sub);margin-bottom:4px">推薦投注</div>
-              <div class="bet-name">${p.bet_on}</div>
+              <div class="pick-row"><span class="lbl">模型勝率</span><span class="val">${p.model_p}%</span></div>
+              <div class="pick-row"><span class="lbl">市場隱含</span><span class="val">${p.dv_p}%</span></div>
+              <div class="pick-row"><span class="lbl">ELO</span><span class="val">${p.elo1} / ${p.elo2}</span></div>
             </div>
-            <div class="bet-meta">
-              <span class="price">@${p.best_price}</span>
-              <span class="edge">edge +${p.edge}%</span>
-              <span class="stake">建議 $${p.stake}</span>
+            <div>
+              <div class="pick-row"><span class="lbl">P1 發球得分率</span><span class="val">${p.p1_sv_pct}%</span></div>
+              <div class="pick-row"><span class="lbl">P2 發球得分率</span><span class="val">${p.p2_sv_pct}%</span></div>
+              <div class="pick-row"><span class="lbl">H2H 修正</span><span class="val">${h2h}</span></div>
+            </div>
+            <div class="bet-box">
+              <div>
+                <div style="font-size:.72rem;color:var(--sub);margin-bottom:3px">推薦投注</div>
+                <div class="bet-name">${p.bet_on}</div>
+              </div>
+              <div class="bet-meta">
+                <span class="price">@${p.best_price}</span>
+                <span class="edge">edge +${p.edge}%</span>
+                <span class="stake">建議 $${p.stake}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
+        </div>`;
+      }).join('')
+    : '<div class="empty">今日無符合條件的推薦<br><small style="font-size:.78rem;margin-top:6px;display:block">模型仍在尋找邊際值機會</small></div>';
 
   // History
   const hist = data.recent_history || [];
-  const hb = document.getElementById('hist-body');
-  if(!hist.length){
-    document.getElementById('hist-wrap').innerHTML='<div class="empty">尚無歷史紀錄</div>';
-  } else {
-    hb.innerHTML = hist.map(b=>{
-      const res = b.result;
-      const cls = res?`result-${res}`:'result-null';
-      const label = res==='W'?'✅ 贏':res==='L'?'❌ 輸':res==='P'?'🔄 和':'⏳ 待定';
-      return `<tr>
-        <td>${b.date||'—'}</td>
-        <td>${b.p1||b.home||'?'} vs ${b.p2||b.away||'?'}</td>
-        <td style="color:#f39c12;font-size:.82rem">${b.bet_on||b.label||'—'}</td>
-        <td>${b.price?'@'+b.price:'—'}</td>
-        <td class="${cls}">${label}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  document.getElementById('updated-at').textContent =
-    data.live_updated_at ? '場中更新：'+data.live_updated_at : '更新：'+(data.generated_at||'');
+  document.getElementById('hist-wrap').innerHTML = hist.length
+    ? `<table class="hist-table"><thead><tr><th>日期</th><th>對陣</th><th>推薦</th><th>賠率</th><th>結果</th></tr></thead><tbody>${
+        hist.map(b=>{
+          const r=b.result;
+          const lbl=r==='W'?'✅ 贏':r==='L'?'❌ 輸':r==='P'?'🔄 和':'⏳ 待定';
+          return `<tr><td>${b.date||'—'}</td><td>${b.p1||b.home||'?'} vs ${b.p2||b.away||'?'}</td><td style="color:#f39c12;font-size:.82rem">${b.bet_on||b.label||'—'}</td><td>${b.price?'@'+b.price:'—'}</td><td class="result-${r||'null'}">${lbl}</td></tr>`;
+        }).join('')
+      }</tbody></table>`
+    : '<div class="empty">尚無歷史紀錄</div>';
 }
 
+function setVal(id, text, cls=''){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'val ' + cls;
+}
+
+// init
 load();
-setInterval(load, 5*60*1000); // 每5分鐘自動重整
+checkRunStatus();
+setInterval(load, 5*60*1000);
+setInterval(checkRunStatus, 30*1000);
 </script>
 </body>
 </html>
