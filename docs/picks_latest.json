@@ -431,9 +431,9 @@
       "away_score": "",
       "sport_title": "ATP French Open",
       "last_update": null,
-      "best_home": 2.1,
-      "best_away": 1.79,
-      "drift": -7.0
+      "best_home": 2.17,
+      "best_away": 1.72,
+      "drift": -7.8
     },
     {
       "home": "Roberto Carballes Baena",
@@ -442,9 +442,9 @@
       "away_score": "",
       "sport_title": "ATP French Open",
       "last_update": null,
-      "best_home": 2.58,
+      "best_home": 2.62,
       "best_away": 1.53,
-      "drift": -3.2
+      "drift": -3.5
     },
     {
       "home": "Emilio Nava",
@@ -455,7 +455,7 @@
       "last_update": null,
       "best_home": 1.42,
       "best_away": 3.23,
-      "drift": 8.6
+      "drift": 8.2
     },
     {
       "home": "Pierre-Hugues Herbert",
@@ -464,9 +464,9 @@
       "away_score": "",
       "sport_title": "ATP French Open",
       "last_update": null,
-      "best_home": 3.48,
+      "best_home": 3.44,
       "best_away": 1.33,
-      "drift": -6.2
+      "drift": -6.1
     },
     {
       "home": "Vilius Gaubas",
@@ -475,9 +475,9 @@
       "away_score": "",
       "sport_title": "ATP French Open",
       "last_update": null,
-      "best_home": 2.68,
+      "best_home": 2.71,
       "best_away": 1.57,
-      "drift": -5.1
+      "drift": -5.2
     },
     {
       "home": "Darwin Blanch",
@@ -497,9 +497,9 @@
       "away_score": "",
       "sport_title": "ATP French Open",
       "last_update": null,
-      "best_home": 2.61,
+      "best_home": 2.59,
       "best_away": 1.55,
-      "drift": -30.4
+      "drift": -30.3
     },
     {
       "home": "Alexander Bublik",
@@ -510,7 +510,7 @@
       "last_update": null,
       "best_home": 1.29,
       "best_away": 4.05,
-      "drift": 11.0
+      "drift": 10.8
     },
     {
       "home": "Alexandre Muller",
@@ -519,7 +519,7 @@
       "away_score": "",
       "sport_title": "ATP French Open",
       "last_update": null,
-      "best_home": 5.42,
+      "best_home": 5.39,
       "best_away": 1.23,
       "drift": -11.8
     },
@@ -565,7 +565,7 @@
       "last_update": null,
       "best_home": 1.3,
       "best_away": 3.92,
-      "drift": 6.5
+      "drift": 5.7
     },
     {
       "home": "Giovanni Mpetshi Perricard",
@@ -576,7 +576,7 @@
       "last_update": null,
       "best_home": 6.63,
       "best_away": 1.17,
-      "drift": -3.0
+      "drift": -3.2
     },
     {
       "home": "Jaume Munar",
@@ -597,7 +597,7 @@
       "sport_title": "ATP French Open",
       "last_update": null,
       "best_home": 3.35,
-      "best_away": 1.39,
+      "best_away": 1.38,
       "drift": -7.2
     },
     {
@@ -609,7 +609,7 @@
       "last_update": null,
       "best_home": 2.06,
       "best_away": 1.88,
-      "drift": -18.4
+      "drift": -18.3
     },
     {
       "home": "Aliaksandra Sasnovich",
@@ -629,9 +629,9 @@
       "away_score": "",
       "sport_title": "WTA French Open",
       "last_update": null,
-      "best_home": 2.05,
-      "best_away": 1.8,
-      "drift": -13.6
+      "best_home": 2.07,
+      "best_away": 1.79,
+      "drift": -13.7
     },
     {
       "home": "Harmony Tan",
@@ -652,8 +652,8 @@
       "sport_title": "WTA French Open",
       "last_update": null,
       "best_home": 1.74,
-      "best_away": 2.22,
-      "drift": 6.0
+      "best_away": 2.18,
+      "drift": 5.9
     },
     {
       "home": "Lulu Sun",
@@ -662,9 +662,9 @@
       "away_score": "",
       "sport_title": "WTA French Open",
       "last_update": null,
-      "best_home": 2.52,
+      "best_home": 2.5,
       "best_away": 1.57,
-      "drift": -2.8
+      "drift": -2.7
     },
     {
       "home": "Katarina Zavatska",
@@ -673,9 +673,9 @@
       "away_score": "",
       "sport_title": "WTA French Open",
       "last_update": null,
-      "best_home": 2.26,
-      "best_away": 1.67,
-      "drift": -16.6
+      "best_home": 2.32,
+      "best_away": 1.65,
+      "drift": -16.9
     },
     {
       "home": "Rebecca Sramkova",
@@ -988,6 +988,6 @@
       "exp_games": 41.3
     }
   },
-  "live_updated_at": "2026-05-22 00:08 (台灣時間)",
-  "live_updated_ts": 1779379683
+  "live_updated_at": "2026-05-22 00:40 (台灣時間)",
+  "live_updated_ts": 1779381617
 }
