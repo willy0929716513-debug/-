@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎾 Tennis Predictor</title>
+<style>
+  :root{
+    --bg:#0f1117;--card:#1a1d27;--card2:#22263a;
+    --acc:#4f8ef7;--green:#2ecc71;--red:#e74c3c;
+    --clay:#c0392b;--grass:#27ae60;--hard:#2980b9;
+    --text:#e8eaf0;--sub:#8892b0;--border:#2d3250;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  header{background:linear-gradient(135deg,#1a1d27,#22263a);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+  header h1{font-size:1.25rem;font-weight:700;letter-spacing:.5px}
+  header .sub{font-size:.8rem;color:var(--sub);margin-left:auto}
+  .container{max-width:960px;margin:0 auto;padding:20px 16px}
+  /* STATS BAR */
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .stat-card .label{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  .stat-card .val{font-size:1.5rem;font-weight:700}
+  .stat-card .val.green{color:var(--green)}
+  .stat-card .val.red{color:var(--red)}
+  /* SECTION */
+  .section{margin-bottom:28px}
+  .section-title{font-size:.85rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+  /* PICK CARD */
+  .pick-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
+  .pick-card:hover{border-color:var(--acc)}
+  .pick-card.tier-A{border-left:3px solid #f39c12}
+  .pick-card.tier-B{border-left:3px solid var(--acc)}
+  .pick-card.tier-C{border-left:3px solid var(--sub)}
+  .pick-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .pick-header .matchup{font-size:1.05rem;font-weight:700;flex:1}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600}
+  .badge.clay{background:rgba(192,57,43,.2);color:#e74c3c;border:1px solid rgba(192,57,43,.4)}
+  .badge.grass{background:rgba(39,174,96,.2);color:#2ecc71;border:1px solid rgba(39,174,96,.4)}
+  .badge.hard{background:rgba(41,128,185,.2);color:#3498db;border:1px solid rgba(41,128,185,.4)}
+  .badge.tour{background:rgba(79,142,247,.15);color:var(--acc);border:1px solid rgba(79,142,247,.3)}
+  .pick-body{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pick-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+  .pick-row:last-child{border-bottom:none}
+  .pick-row .lbl{font-size:.78rem;color:var(--sub)}
+  .pick-row .val{font-size:.88rem;font-weight:600}
+  .bet-box{grid-column:1/-1;background:var(--card2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .bet-box .bet-name{font-size:.95rem;font-weight:700;color:#f39c12}
+  .bet-box .bet-meta{display:flex;gap:16px;align-items:center}
+  .bet-box .price{font-size:1.1rem;font-weight:700;color:var(--green)}
+  .bet-box .edge{font-size:.82rem;color:var(--acc);background:rgba(79,142,247,.15);padding:3px 8px;border-radius:6px}
+  .bet-box .stake{font-size:.82rem;color:var(--sub)}
+  /* LIVE */
+  .live-card{background:var(--card);border:1px solid #e74c3c44;border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .live-matchup{font-weight:600;flex:1}
+  .live-bet{color:#f39c12;font-size:.85rem;font-weight:600}
+  .live-drift{font-size:.78rem;padding:3px 8px;border-radius:6px}
+  .live-drift.up{background:rgba(46,204,113,.15);color:var(--green)}
+  .live-drift.dn{background:rgba(231,76,60,.15);color:var(--red)}
+  /* HISTORY */
+  .hist-table{width:100%;border-collapse:collapse}
+  .hist-table th{font-size:.72rem;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .hist-table td{padding:10px 12px;font-size:.85rem;border-bottom:1px solid var(--border)}
+  .hist-table tr:last-child td{border-bottom:none}
+  .result-W{color:var(--green);font-weight:700}
+  .result-L{color:var(--red);font-weight:700}
+  .result-P{color:var(--sub)}
+  .result-null{color:var(--sub);font-style:italic}
+  /* EMPTY */
+  .empty{text-align:center;padding:40px 20px;color:var(--sub);font-size:.9rem}
+  /* UPDATED */
+  .updated{font-size:.72rem;color:var(--sub);text-align:center;margin-top:24px;padding-bottom:32px}
+  /* RESPONSIVE */
+  @media(max-width:600px){
+    .stats-bar{grid-template-columns:repeat(2,1fr)}
+    .pick-body{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size:1.6rem">🎾</span>
+  <h1>Tennis Predictor</h1>
+  <span class="sub" id="gen-time">載入中...</span>
+</header>
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-card"><div class="label">已結算</div><div class="val" id="s-settled">—</div></div>
+    <div class="stat-card"><div class="label">勝率</div><div class="val" id="s-wr">—</div></div>
+    <div class="stat-card"><div class="label">ROI</div><div class="val" id="s-roi">—</div></div>
+    <div class="stat-card"><div class="label">損益</div><div class="val" id="s-pnl">—</div></div>
+  </div>
+
+  <!-- LIVE -->
+  <div class="section" id="live-section" style="display:none">
+    <div class="section-title">🔴 場中監控</div>
+    <div id="live-list"></div>
+  </div>
+
+  <!-- PICKS -->
+  <div class="section">
+    <div class="section-title">📌 今日推薦</div>
+    <div id="picks-list"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section">
+    <div class="section-title">📋 近期戰績</div>
+    <div id="hist-wrap">
+      <table class="hist-table">
+        <thead><tr><th>日期</th><th>對陣</th><th>推薦</th><th>賠率</th><th>結果</th></tr></thead>
+        <tbody id="hist-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="updated" id="updated-at"></div>
+</div>
+
+<script>
+const SURF_CN = {clay:'🟤 紅土',grass:'🟢 草地',hard:'🔵 硬地'};
+
+async function load(){
+  let data;
+  try{
+    const r = await fetch('picks_latest.json?t='+Date.now());
+    data = await r.json();
+  }catch(e){
+    document.getElementById('picks-list').innerHTML='<div class="empty">⚠️ 無法載入資料，請稍後重試</div>';
+    return;
+  }
+
+  // Header time
+  document.getElementById('gen-time').textContent = data.generated_at || '';
+
+  // Stats
+  const st = data.stats || {};
+  const wr = st.win_rate ?? 0;
+  const roi = st.roi ?? 0;
+  const pnl = st.pnl ?? 0;
+  document.getElementById('s-settled').textContent = st.settled ?? 0;
+  const wrEl = document.getElementById('s-wr');
+  wrEl.textContent = wr ? wr.toFixed(1)+'%' : '—';
+  wrEl.className = 'val '+(wr>=55?'green':wr>0?'':'');
+  const roiEl = document.getElementById('s-roi');
+  roiEl.textContent = roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—';
+  roiEl.className = 'val '+(roi>0?'green':roi<0?'red':'');
+  const pnlEl = document.getElementById('s-pnl');
+  pnlEl.textContent = pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—';
+  pnlEl.className = 'val '+(pnl>0?'green':pnl<0?'red':'');
+
+  // Live
+  const lives = (data.live_matches||[]).filter(m=>m.bet);
+  if(lives.length){
+    document.getElementById('live-section').style.display='';
+    const ll = document.getElementById('live-list');
+    ll.innerHTML = lives.map(m=>{
+      const drift = m.drift||0;
+      const driftClass = drift>0?'up':'dn';
+      const driftStr = (drift>0?'+':'')+drift.toFixed(1)+'%';
+      return `<div class="live-card">
+        <div class="live-dot"></div>
+        <div class="live-matchup">${m.home} vs ${m.away}</div>
+        <div class="live-bet">${m.bet}</div>
+        <span class="live-drift ${driftClass}">${driftStr} 賠率漂移</span>
+        <span style="font-size:.78rem;color:var(--sub)">${m.reason||''}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Picks
+  const picks = data.picks || [];
+  const pl = document.getElementById('picks-list');
+  if(!picks.length){
+    pl.innerHTML='<div class="empty">今日無符合條件的推薦<br><small style="font-size:.78rem">模型仍在尋找邊際值機會</small></div>';
+  } else {
+    pl.innerHTML = picks.map(p=>{
+      const surf = p.surface||'hard';
+      const surfLabel = SURF_CN[surf]||surf;
+      const bo = p.best_of===5?'BO5 大滿貫':'BO3';
+      const h2h = p.h2h_adj>0?`<span style="color:var(--green)">+${p.h2h_adj}%</span>`
+                 :p.h2h_adj<0?`<span style="color:var(--red)">${p.h2h_adj}%</span>`:'—';
+      return `<div class="pick-card tier-${p.tier}">
+        <div class="pick-header">
+          <span style="font-size:1.2rem">${p.star}</span>
+          <span class="matchup">${p.p1} <span style="color:var(--sub);font-size:.8rem">vs</span> ${p.p2}</span>
+          <span class="badge ${surf}">${surfLabel}</span>
+          <span class="badge tour">${p.tour||''}</span>
+          <span class="badge" style="background:rgba(255,255,255,.06);color:var(--sub);border:none">${bo}</span>
+        </div>
+        <div class="pick-body">
+          <div>
+            <div class="pick-row"><span class="lbl">模型勝率</span><span class="val">${p.model_p}%</span></div>
+            <div class="pick-row"><span class="lbl">市場隱含</span><span class="val">${p.dv_p}%</span></div>
+            <div class="pick-row"><span class="lbl">ELO 評分</span><span class="val">${p.elo1} / ${p.elo2}</span></div>
+          </div>
+          <div>
+            <div class="pick-row"><span class="lbl">P1 發球得分率</span><span class="val">${p.p1_sv_pct}%</span></div>
+            <div class="pick-row"><span class="lbl">P2 發球得分率</span><span class="val">${p.p2_sv_pct}%</span></div>
+            <div class="pick-row"><span class="lbl">H2H 修正</span><span class="val">${h2h}</span></div>
+          </div>
+          <div class="bet-box">
+            <div>
+              <div style="font-size:.72rem;color:var(--sub);margin-bottom:4px">推薦投注</div>
+              <div class="bet-name">${p.bet_on}</div>
+            </div>
+            <div class="bet-meta">
+              <span class="price">@${p.best_price}</span>
+              <span class="edge">edge +${p.edge}%</span>
+              <span class="stake">建議 $${p.stake}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // History
+  const hist = data.recent_history || [];
+  const hb = document.getElementById('hist-body');
+  if(!hist.length){
+    document.getElementById('hist-wrap').innerHTML='<div class="empty">尚無歷史紀錄</div>';
+  } else {
+    hb.innerHTML = hist.map(b=>{
+      const res = b.result;
+      const cls = res?`result-${res}`:'result-null';
+      const label = res==='W'?'✅ 贏':res==='L'?'❌ 輸':res==='P'?'🔄 和':'⏳ 待定';
+      return `<tr>
+        <td>${b.date||'—'}</td>
+        <td>${b.p1||b.home||'?'} vs ${b.p2||b.away||'?'}</td>
+        <td style="color:#f39c12;font-size:.82rem">${b.bet_on||b.label||'—'}</td>
+        <td>${b.price?'@'+b.price:'—'}</td>
+        <td class="${cls}">${label}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('updated-at').textContent =
+    data.live_updated_at ? '場中更新：'+data.live_updated_at : '更新：'+(data.generated_at||'');
+}
+
+load();
+setInterval(load, 5*60*1000); // 每5分鐘自動重整
+</script>
+</body>
+</html>
