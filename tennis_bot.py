@@ -2080,7 +2080,7 @@ def send_ntfy(title: str, message: str) -> None:
         log.warning("ntfy: %s", e)
 
 
-def send_discord(picks: List[dict], stats: dict) -> None:
+def send_discord(picks: List[dict], stats: dict, is_recording: bool = False) -> None:
     if not DISCORD_HOOK:
         return
     now   = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
