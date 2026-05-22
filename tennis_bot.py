@@ -1953,8 +1953,16 @@ def generate_picks(matches: List[dict],
 def load_history() -> dict:
     if not GIST_TOKEN or not GIST_ID:
         return {"bets": []}
-    data = safe_get("https://api.github.com/gists/%s" % GIST_ID)
-    if not data:
+    try:
+        r = requests.get(
+            "https://api.github.com/gists/%s" % GIST_ID,
+            headers={"Authorization": "token %s" % GIST_TOKEN},
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        log.warning("load_history: %s", e)
         return {"bets": []}
     for fname, fd in data.get("files", {}).items():
         if fname.endswith(".json"):
