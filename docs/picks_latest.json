@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-23 00:06 (台灣時間)",
-  "generated_at_iso": "2026-05-23T00:06:07+08:00",
+  "generated_at": "2026-05-23 00:28 (台灣時間)",
+  "generated_at_iso": "2026-05-23T00:28:33+08:00",
   "date": "2026-05-23",
   "model_version": "v3.2 — 15-factor: ELO(live)+BO5+SurfaceH2H+1stSrv+BPconv+Cond+KellyTier",
   "stats": {
@@ -39,7 +39,7 @@
       "p2_sv_pct": 60.0,
       "elo1": 1468.6,
       "elo2": 1464.2,
-      "expected_games": 40.5,
+      "expected_games": 40.7,
       "best_of": 5,
       "h2h_adj": 0.0,
       "hb_p1": 54.5,
@@ -66,7 +66,7 @@
       "court_speed": 0.0,
       "altitude_adj": 0.0,
       "wind_adj": 0.0,
-      "wind_kmh": 4.3,
+      "wind_kmh": 7.0,
       "streak_adj": 2.5,
       "win_streak1": -1,
       "win_streak2": -5,
@@ -139,7 +139,7 @@
       "court_speed": 0.0,
       "altitude_adj": 0.0,
       "wind_adj": 0.0,
-      "wind_kmh": 4.3,
+      "wind_kmh": 0.0,
       "streak_adj": -1.5,
       "win_streak1": -3,
       "win_streak2": -2,
@@ -161,17 +161,6 @@
   "recent_history": [],
   "live_matches": [],
   "game_preds": {
-    "felix gill|kyrian jacquet": {
-      "p1": "Felix Gill",
-      "p2": "Kyrian Jacquet",
-      "p1_key": "felix_gill",
-      "p2_key": "kyrian_jacquet",
-      "model_p1": 0.5886,
-      "surface": "clay",
-      "tour_level": "grand_slam",
-      "best_of": 5,
-      "exp_games": 41.9
-    },
     "ugo humbert|adrian mannarino": {
       "p1": "Ugo Humbert",
       "p2": "Adrian Mannarino",
@@ -181,7 +170,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.0
+      "exp_games": 40.2
     },
     "alejandro davidovich fokina|damir dzumhur": {
       "p1": "Alejandro Davidovich Fokina",
@@ -192,7 +181,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.0
+      "exp_games": 41.1
     },
     "aleksandar kovacevic|rafael jodar": {
       "p1": "Aleksandar Kovacevic",
@@ -214,7 +203,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.6
+      "exp_games": 41.5
     },
     "benjamin bonzi|alexander zverev": {
       "p1": "Benjamin Bonzi",
@@ -225,7 +214,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 41.1
     },
     "ignacio buse|andrey rublev": {
       "p1": "Ignacio Buse",
@@ -236,7 +225,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.8
+      "exp_games": 40.5
     },
     "stan wawrinka|arthur fils": {
       "p1": "Stan Wawrinka",
@@ -247,7 +236,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.8
+      "exp_games": 41.9
     },
     "karen khachanov|arthur gea": {
       "p1": "Karen Khachanov",
@@ -258,7 +247,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.3
+      "exp_games": 42.4
     },
     "miomir kecmanovic|fabian marozsan": {
       "p1": "Miomir Kecmanovic",
@@ -269,7 +258,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.8
+      "exp_games": 41.6
     },
     "james duckworth|gabriel diallo": {
       "p1": "James Duckworth",
@@ -280,7 +269,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.8
+      "exp_games": 41.7
     },
     "giovanni mpetshi perricard|novak djokovic": {
       "p1": "Giovanni Mpetshi Perricard",
@@ -302,7 +291,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.6
     },
     "titouan droguet|jakub mensik": {
       "p1": "Titouan Droguet",
@@ -313,7 +302,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.9
+      "exp_games": 42.2
     },
     "mariano navone|jenson brooksby": {
       "p1": "Mariano Navone",
@@ -324,7 +313,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 40.9
     },
     "pablo carreno busta|jiri lehecka": {
       "p1": "Pablo Carreno Busta",
@@ -335,7 +324,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.3
+      "exp_games": 41.7
     },
     "quentin halys|mattia bellucci": {
       "p1": "Quentin Halys",
@@ -346,7 +335,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.6
+      "exp_games": 41.5
     },
     "taylor fritz|nishesh basavareddy": {
       "p1": "Taylor Fritz",
@@ -357,7 +346,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.1
     },
     "tomas martin etcheverry|nuno borges": {
       "p1": "Tomas Martin Etcheverry",
@@ -368,7 +357,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.7
+      "exp_games": 41.8
     },
     "rinky hijikata|tommy paul": {
       "p1": "Rinky Hijikata",
@@ -401,7 +390,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.6
+      "exp_games": 41.3
     },
     "adam walton|daniil medvedev": {
       "p1": "Adam Walton",
@@ -412,7 +401,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.9
+      "exp_games": 40.0
     },
     "cameron norrie|adolfo daniel vallejo": {
       "p1": "Cameron Norrie",
@@ -423,7 +412,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 41.9
     },
     "alejandro tabilo|kamil majchrzak": {
       "p1": "Alejandro Tabilo",
@@ -456,7 +445,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.1
+      "exp_games": 42.0
     },
     "alexandre muller|stefanos tsitsipas": {
       "p1": "Alexandre Muller",
@@ -489,7 +478,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.5
+      "exp_games": 40.3
     },
     "francisco cerundolo|botic van de zandschulp": {
       "p1": "Francisco Cerundolo",
@@ -500,7 +489,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.5
     },
     "roberto bautista agut|brandon nakashima": {
       "p1": "Roberto Bautista Agut",
@@ -511,7 +500,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.3
+      "exp_games": 41.4
     },
     "jannik sinner|clement tabur": {
       "p1": "Jannik Sinner",
@@ -522,7 +511,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 37.2
+      "exp_games": 37.1
     },
     "vit kopriva|corentin moutet": {
       "p1": "Vit Kopriva",
@@ -533,7 +522,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.1
+      "exp_games": 41.3
     },
     "cristian garin|learner tien": {
       "p1": "Cristian Garin",
@@ -544,7 +533,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.7
+      "exp_games": 41.6
     },
     "felix auger-aliassime|daniel altmaier": {
       "p1": "Felix Auger-Aliassime",
@@ -555,7 +544,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.3
     },
     "eliot spizzirri|frances tiafoe": {
       "p1": "Eliot Spizzirri",
@@ -566,7 +555,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 41.6
     },
     "ethan quinn|francisco comesana": {
       "p1": "Ethan Quinn",
@@ -577,7 +566,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.9
+      "exp_games": 42.1
     },
     "hugo gaston|gael monfils": {
       "p1": "Hugo Gaston",
@@ -599,7 +588,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 42.4
+      "exp_games": 42.3
     },
     "jacob fearnley|juan manuel cerundolo": {
       "p1": "Jacob Fearnley",
@@ -610,7 +599,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.9
+      "exp_games": 40.7
     },
     "luca van assche|patrick kypson": {
       "p1": "Luca Van Assche",
@@ -621,7 +610,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.9
+      "exp_games": 40.7
     },
     "sebastian ofner|luciano darderi": {
       "p1": "Sebastian Ofner",
@@ -632,7 +621,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.5
+      "exp_games": 41.8
     },
     "wu yibing|marcos giron": {
       "p1": "Wu Yibing",
@@ -643,7 +632,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.3
+      "exp_games": 41.0
     },
     "marin cilic|moise kouame": {
       "p1": "Marin Cilic",
@@ -654,7 +643,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 41.4
     },
     "marton fucsovics|matteo berrettini": {
       "p1": "Marton Fucsovics",
@@ -665,7 +654,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.8
+      "exp_games": 41.9
     },
     "tallon griekspoor|matteo arnaldi": {
       "p1": "Tallon Griekspoor",
@@ -676,7 +665,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.5
+      "exp_games": 40.7
     },
     "sebastian baez|roman andres burruchaga": {
       "p1": "Sebastian Baez",
@@ -687,7 +676,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.3
+      "exp_games": 40.6
     },
     "akasha urhobo|katie boulter": {
       "p1": "Akasha Urhobo",
@@ -709,7 +698,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 41.4
     },
     "donna vekic|alice tubello": {
       "p1": "Donna Vekic",
@@ -720,7 +709,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.4
+      "exp_games": 40.9
     },
     "tiantsoa sarah rajaonah|amanda anisimova": {
       "p1": "Tiantsoa Sarah Rajaonah",
@@ -731,7 +720,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.3
+      "exp_games": 40.4
     },
     "maya joint|anastasia potapova": {
       "p1": "Maya Joint",
@@ -764,7 +753,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.8
+      "exp_games": 40.9
     },
     "anna kalinskaya|lois boisson": {
       "p1": "Anna Kalinskaya",
@@ -775,7 +764,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 37.0
+      "exp_games": 37.2
     },
     "aryna sabalenka|jessica bouzas maneiro": {
       "p1": "Aryna Sabalenka",
@@ -786,7 +775,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 38.9
+      "exp_games": 38.5
     },
     "coco gauff|taylor townsend": {
       "p1": "Coco Gauff",
@@ -797,7 +786,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.4
+      "exp_games": 40.3
     },
     "daria kasatkina|zeynep sonmez": {
       "p1": "Daria Kasatkina",
@@ -819,7 +808,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.9
+      "exp_games": 40.6
     },
     "maria camila osorio serrano|ekaterina alexandrova": {
       "p1": "Maria Camila Osorio Serrano",
@@ -830,7 +819,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.2
+      "exp_games": 41.1
     },
     "tatjana maria|elise mertens": {
       "p1": "Tatjana Maria",
@@ -841,7 +830,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.6
+      "exp_games": 39.5
     },
     "emma navarro|janice tjen": {
       "p1": "Emma Navarro",
@@ -852,7 +841,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.4
+      "exp_games": 40.3
     },
     "hanne vandewinkel|madison keys": {
       "p1": "Hanne Vandewinkel",
@@ -863,7 +852,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.8
+      "exp_games": 39.9
     },
     "kimberly birrell|jessica pegula": {
       "p1": "Kimberly Birrell",
@@ -874,7 +863,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.6
+      "exp_games": 39.7
     },
     "simona waltert|katerina siniakova": {
       "p1": "Simona Waltert",
@@ -885,7 +874,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.0
+      "exp_games": 40.1
     },
     "laura siegemund|naomi osaka": {
       "p1": "Laura Siegemund",
@@ -896,7 +885,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.9
+      "exp_games": 40.8
     },
     "linda noskova|maria sakkari": {
       "p1": "Linda Noskova",
@@ -907,7 +896,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.3
+      "exp_games": 40.4
     },
     "victoria mboko|nikola bartunkova": {
       "p1": "Victoria Mboko",
@@ -918,7 +907,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.3
+      "exp_games": 40.1
     },
     "talia gibson|yulia putintseva": {
       "p1": "Talia Gibson",
@@ -929,7 +918,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.9
+      "exp_games": 40.6
     },
     "ajla tomljanovic|caty mcnally": {
       "p1": "Ajla Tomljanovic",
@@ -940,7 +929,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.8
+      "exp_games": 40.9
     },
     "alycia parks|leylah fernandez": {
       "p1": "Alycia Parks",
@@ -951,7 +940,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.3
+      "exp_games": 40.9
     },
     "anastasia zakharova|karolina muchova": {
       "p1": "Anastasia Zakharova",
@@ -973,7 +962,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 38.8
+      "exp_games": 39.0
     },
     "elina svitolina|anna bondár": {
       "p1": "Elina Svitolina",
@@ -984,7 +973,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
+      "exp_games": 40.8
     },
     "hailey baptiste|barbora krejcikova": {
       "p1": "Hailey Baptiste",
@@ -1006,7 +995,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.3
+      "exp_games": 39.9
     },
     "katie volynets|clara burel": {
       "p1": "Katie Volynets",
@@ -1017,7 +1006,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.8
+      "exp_games": 41.2
     },
     "clara tauson|daria snigur": {
       "p1": "Clara Tauson",
@@ -1028,7 +1017,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
+      "exp_games": 40.8
     },
     "jasmine paolini|dayana yastremska": {
       "p1": "Jasmine Paolini",
@@ -1050,7 +1039,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.5
+      "exp_games": 40.6
     },
     "veronika erjavec|elena rybakina": {
       "p1": "Veronika Erjavec",
@@ -1061,7 +1050,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 36.3
+      "exp_games": 36.4
     },
     "jelena ostapenko|ella seidel": {
       "p1": "Jelena Ostapenko",
@@ -1072,7 +1061,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.6
+      "exp_games": 39.7
     },
     "emerson jones|iga swiatek": {
       "p1": "Emerson Jones",
@@ -1083,7 +1072,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 35.9
+      "exp_games": 36.1
     },
     "emma raducanu|solana sierra": {
       "p1": "Emma Raducanu",
@@ -1094,7 +1083,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.7
+      "exp_games": 39.9
     },
     "petra marcinko|eva lys": {
       "p1": "Petra Marcinko",
@@ -1105,7 +1094,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
+      "exp_games": 40.3
     },
     "mirra andreeva|fiona ferro": {
       "p1": "Mirra Andreeva",
@@ -1127,7 +1116,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 41.1
+      "exp_games": 40.9
     },
     "liudmila samsonova|jil teichmann": {
       "p1": "Liudmila Samsonova",
@@ -1138,7 +1127,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.6
+      "exp_games": 40.5
     },
     "ksenia efremova|sorana cirstea": {
       "p1": "Ksenia Efremova",
@@ -1149,7 +1138,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.4
+      "exp_games": 40.6
     },
     "lilli tagger|xinyu wang": {
       "p1": "Lilli Tagger",
@@ -1171,7 +1160,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
+      "exp_games": 40.9
     },
     "marta kostyuk|oksana selekhmeteva": {
       "p1": "Marta Kostyuk",
@@ -1182,7 +1171,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 39.2
+      "exp_games": 39.4
     },
     "panna udvardy|viktorija golubic": {
       "p1": "Panna Udvardy",
@@ -1193,7 +1182,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.7
+      "exp_games": 40.6
     },
     "sofia kenin|peyton stearns": {
       "p1": "Sofia Kenin",
@@ -1204,7 +1193,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.4
+      "exp_games": 40.5
     },
     "sara sorribes tormo|tamara korpatsch": {
       "p1": "Sara Sorribes Tormo",
@@ -1215,7 +1204,7 @@
       "surface": "clay",
       "tour_level": "grand_slam",
       "best_of": 5,
-      "exp_games": 40.1
+      "exp_games": 40.3
     }
   }
 }
