@@ -234,14 +234,6 @@
   "recent_history": [],
   "live_matches": [
     {
-      "home": "Tom Gentzsch",
-      "away": "Roman Safiullin",
-      "home_score": "",
-      "away_score": "",
-      "sport_title": "ATP French Open",
-      "last_update": null
-    },
-    {
       "home": "Felix Gill",
       "away": "Kyrian Jacquet",
       "home_score": "",
@@ -2227,6 +2219,6 @@
       "exp_games": 40.5
     }
   },
-  "live_updated_at": "2026-05-22 22:24 (台灣時間)",
-  "live_updated_ts": 1779459877
+  "live_updated_at": "2026-05-22 22:29 (台灣時間)",
+  "live_updated_ts": 1779460183
 }
