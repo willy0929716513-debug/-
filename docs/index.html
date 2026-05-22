@@ -125,23 +125,16 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .stat .num{font-size:1.4rem;font-weight:700}
 .g{color:var(--green)}.r{color:var(--red)}.o{color:var(--gold)}
 
-/* ─── LIVE CARDS ─── */
-.live-grid{padding:4px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
-.lm-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;padding:10px 14px;
-  display:flex;align-items:flex-start;gap:10px;
-}
-.lm-dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;animation:blink 1.4s infinite;margin-top:6px}
-.lm-body{flex:1;min-width:0}
-.lm-tournament{font-size:.65rem;color:var(--muted);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lm-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0}
-.lm-player{font-size:.85rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lm-sc{font-size:.85rem;font-weight:700;font-family:monospace;color:var(--green);white-space:nowrap;letter-spacing:.3px}
-.lm-updated{font-size:.62rem;color:var(--muted);margin-top:4px}
+/* ─── HISTORY TOP BAND ─── */
+.hist-band{margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.hist-band-hd{padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.hist-band-hd h3{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}
+.hist-band-body{overflow-x:auto;white-space:nowrap;padding:10px 12px;display:flex;gap:8px}
+.hist-band-body::-webkit-scrollbar{height:3px}
+.hist-band-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 /* ─── MAIN GRID ─── */
-.main-grid{display:grid;grid-template-columns:1fr 330px;gap:20px;align-items:start}
+.main-grid{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
 
 /* ─── SECTION TITLE ─── */
 .sec-hd{
@@ -349,11 +342,6 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 }
 .tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
 .tab-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.4)}
-.live-badge{
-  background:var(--red);color:#fff;
-  font-size:.65rem;font-weight:700;
-  padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;
-}
 
 /* ─── SETTINGS TOKEN CARD ─── */
 .tk-info{
@@ -380,7 +368,6 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 /* ─── RESPONSIVE ─── */
 @media(max-width:820px){
   .main-grid{grid-template-columns:1fr}
-  .hist-sidebar{position:static;max-height:420px}
 }
 .action-bar{display:flex;gap:10px;justify-content:center;padding:10px 16px 4px;background:var(--surface)}
 .action-bar .btn{flex:1;max-width:180px;justify-content:center}
@@ -414,7 +401,6 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 </header>
 <div class="action-bar">
   <button class="btn btn-primary btn-sm" id="btn-run" onclick="run('full')" title="重新執行完整預測">⚡ 執行預測</button>
-  <button class="btn btn-live btn-sm" id="btn-live" onclick="run('live')" title="抓取場中即時比分">🔴 場中更新</button>
 </div>
 
 <!-- SETTINGS MODAL -->
@@ -490,6 +476,24 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
         <span class="r-ex">澳 07:00 · 法 17:00 · 溫 18:00 · 美 23:00</span>
       </div>
     </div>
+
+    <div class="modal-divider"></div>
+    <div class="modal-section-title">📅 2026 主要賽事日期</div>
+    <div class="region-grid">
+      <div class="region-row"><span class="r-flag">🇦🇺</span><span class="r-name">澳網</span><span class="r-time">1/13–1/26</span><span class="r-ex">硬地 · 墨爾本</span></div>
+      <div class="region-row"><span class="r-flag">🇦🇪</span><span class="r-name">杜拜 / 多哈</span><span class="r-time">2/16–3/1</span><span class="r-ex">硬地</span></div>
+      <div class="region-row"><span class="r-flag">🇺🇸</span><span class="r-name">印地安泉</span><span class="r-time">3/7–3/22</span><span class="r-ex">硬地 · Masters</span></div>
+      <div class="region-row"><span class="r-flag">🇺🇸</span><span class="r-name">邁阿密</span><span class="r-time">3/25–4/5</span><span class="r-ex">硬地 · Masters</span></div>
+      <div class="region-row"><span class="r-flag">🇪🇸</span><span class="r-name">馬德里</span><span class="r-time">4/24–5/4</span><span class="r-ex">紅土 · Masters</span></div>
+      <div class="region-row"><span class="r-flag">🇮🇹</span><span class="r-name">羅馬</span><span class="r-time">5/7–5/18</span><span class="r-ex">紅土 · Masters</span></div>
+      <div class="region-row"><span class="r-flag">🇫🇷</span><span class="r-name">法網</span><span class="r-time">5/25–6/8</span><span class="r-ex">紅土 · 大滿貫</span></div>
+      <div class="region-row"><span class="r-flag">🇩🇪</span><span class="r-name">哈雷</span><span class="r-time">6/15–6/21</span><span class="r-ex">草地 · ATP500</span></div>
+      <div class="region-row"><span class="r-flag">🇬🇧</span><span class="r-name">女王盃</span><span class="r-time">6/15–6/21</span><span class="r-ex">草地 · ATP500</span></div>
+      <div class="region-row"><span class="r-flag">🇬🇧</span><span class="r-name">溫布頓</span><span class="r-time">6/29–7/12</span><span class="r-ex">草地 · 大滿貫</span></div>
+      <div class="region-row"><span class="r-flag">🇨🇦</span><span class="r-name">多倫多 / 蒙特婁</span><span class="r-time">8/7–8/16</span><span class="r-ex">硬地 · Masters</span></div>
+      <div class="region-row"><span class="r-flag">🇺🇸</span><span class="r-name">辛辛那提</span><span class="r-time">8/17–8/23</span><span class="r-ex">硬地 · Masters</span></div>
+      <div class="region-row"><span class="r-flag">🇺🇸</span><span class="r-name" style="border-bottom:none">美網</span><span class="r-time">8/31–9/13</span><span class="r-ex">硬地 · 大滿貫</span></div>
+    </div>
   </div>
 </div>
 
@@ -504,43 +508,24 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
     <div class="stat"><div class="lbl">損益</div><div class="num" id="s-pnl">—</div></div>
   </div>
 
+  <!-- HISTORY BAND -->
+  <div class="hist-band">
+    <div class="hist-band-hd">
+      <h3>📋 近期戰績</h3>
+      <button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄</button>
+    </div>
+    <div class="hist-band-body" id="hist"><span style="color:var(--muted);font-size:.8rem">載入中…</span></div>
+  </div>
+
   <!-- MAIN GRID -->
   <div class="main-grid">
-
-    <!-- LEFT: TABBED PANEL -->
     <div>
-      <div class="tab-bar">
-        <button class="tab-btn active" id="tab-picks" onclick="switchTab('picks')">📌 今日推薦</button>
-        <button class="tab-btn" id="tab-live" onclick="switchTab('live')">
-          🔴 場中比分
-          <span class="live-badge" id="live-badge" style="display:none"></span>
-        </button>
-        <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">📌 今日推薦</span>
         <button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄 重新整理</button>
       </div>
-
-      <div id="tab-picks-panel">
-        <div id="picks"><div class="empty">載入中…</div></div>
-      </div>
-
-      <div id="tab-live-panel" style="display:none">
-        <div class="empty" id="live-empty">目前無進行中比賽</div>
-        <div class="live-grid" id="live-list"></div>
-        <div id="live-updated" style="font-size:.7rem;color:var(--muted);padding:8px 0 4px;text-align:right"></div>
-      </div>
+      <div id="picks"><div class="empty">載入中…</div></div>
     </div>
-
-    <!-- RIGHT: HISTORY SIDEBAR -->
-    <div class="hist-sidebar">
-      <div class="hist-hd">
-        <h3>📋 近期戰績</h3>
-        <button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄</button>
-      </div>
-      <div class="hist-body" id="hist">
-        <div class="hist-empty">載入中…</div>
-      </div>
-    </div>
-
   </div>
 
   <div class="footer" id="footer"></div>
@@ -582,13 +567,6 @@ function toast(msg, type='info'){
   setTimeout(()=>el.remove(), 3200);
 }
 
-function switchTab(tab){
-  ['picks','live'].forEach(t => {
-    q('tab-'+t).classList.toggle('active', t===tab);
-    const panel = q('tab-'+t+'-panel');
-    if(panel) panel.style.display = t===tab ? '' : 'none';
-  });
-}
 
 function refreshData(){
   const picks=document.getElementById('picks');
@@ -599,7 +577,7 @@ function refreshData(){
 async function run(mode='full'){
   const tk=sanitizeTk(getTk());
   if(!tk){ openSettings(); toast('請先設定 Token','err'); return; }
-  const btn = mode==='live' ? document.getElementById('btn-live') : document.getElementById('btn-run');
+  const btn = document.getElementById('btn-run');
   btn.disabled=true;
   try{
     const res = await fetch(
@@ -651,8 +629,6 @@ function q(id){ return document.getElementById(id); }
 function setNum(id,text,cls=''){
   const el=q(id); el.textContent=text; el.className='num '+cls;
 }
-
-let liveEmptyCount = 0;
 
 function relTime(iso){
   if(!iso) return '';
@@ -803,42 +779,6 @@ async function load(){
   setNum('s-roi', roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—', roi>0?'g':roi<0?'r':'');
   setNum('s-pnl', pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—', pnl>0?'g':pnl<0?'r':'');
 
-  const lives = data.live_matches || [];
-  const badge = q('live-badge');
-  if(lives.length){
-    liveEmptyCount = 0;
-    badge.textContent = lives.length;
-    badge.style.display = '';
-    q('live-empty').style.display = 'none';
-    const upd = data.live_updated_at ? data.live_updated_at.replace(' (台灣時間)','') : '';
-    const updTs = data.live_updated_ts ? relTime(new Date(data.live_updated_ts*1000).toISOString()) : '';
-    q('live-updated').textContent = upd ? '更新 '+upd+(updTs?' ('+updTs+')':'') : '';
-    q('live-list').innerHTML = lives.map(m => {
-      const hs=m.home_score||'', as=m.away_score||'';
-      const tourn=(m.sport_title||'').replace(/^Tennis\s+/i,'');
-      const updTime=m.last_update?new Date(m.last_update).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}):'';
-      const noScore = !hs && !as;
-      return `<div class="lm-card"><div class="lm-dot"></div><div class="lm-body">
-        ${tourn?`<div class="lm-tournament">${tourn}</div>`:''}
-        ${noScore
-          ? `<div class="lm-row"><span class="lm-player" style="font-weight:600">${m.home||'?'}</span></div>
-             <div class="lm-row"><span class="lm-player" style="font-weight:600">${m.away||'?'}</span></div>
-             <div class="lm-updated" style="margin-top:6px">⏳ 待賽中 / 比分未回傳</div>`
-          : `<div class="lm-row"><span class="lm-player">${m.home||'?'}</span><span class="lm-sc">${hs}</span></div>
-             <div class="lm-row"><span class="lm-player">${m.away||'?'}</span><span class="lm-sc">${as}</span></div>
-             ${updTime?`<div class="lm-updated">更新 ${updTime}</div>`:''}`}
-      </div></div>`;
-    }).join('');
-  } else {
-    liveEmptyCount++;
-    badge.style.display = 'none';
-    if(liveEmptyCount >= 3){
-      q('live-empty').style.display = '';
-      q('live-list').innerHTML = '';
-      q('live-updated').textContent = '';
-    }
-  }
-
   const picks = data.picks || [];
   if(!picks.length){
     q('picks').innerHTML = '<div class="empty">今日無符合條件的推薦<br><small>模型尚未找到足夠邊際值的機會</small></div>';
@@ -862,14 +802,24 @@ async function load(){
   }
 
   const hist = data.recent_history || [];
-  q('hist').innerHTML = hist.length
-    ? hist.map(b=>{
-        const r=b.result,ico=r==='W'?'✅':r==='L'?'❌':r==='P'?'🔄':'⏳';
-        const dte=(b.date||'').slice(5)||'—',p1=b.p1||b.home||'?',p2=b.p2||b.away||'?';
-        const bet=b.bet_on||b.label||'—',prc=b.price?'@'+b.price:'';
-        return `<div class="hr"><div class="hr-info"><div class="hr-matchup">${p1} vs ${p2}</div><div class="hr-meta"><span class="hr-bet">${bet}</span>${prc?' · '+prc:''}</div><div class="hr-date">${dte}</div></div><div class="hr-result ${r||'pend'}">${ico}</div></div>`;
-      }).join('')
-    : '<div class="hist-empty">尚無歷史紀錄</div>';
+  if(hist.length){
+    q('hist').innerHTML = hist.map(b=>{
+      const r=b.result||'P';
+      const ico=r==='W'?'✅':r==='L'?'❌':'🔄';
+      const cls=r==='W'?'g':r==='L'?'r':'';
+      const dte=(b.date||'').slice(5)||'—';
+      const bet=b.bet_on||'—',prc=b.price?'@'+b.price:'';
+      const edge=b.edge?'+'+b.edge+'%':'';
+      return `<div style="display:inline-flex;flex-direction:column;gap:3px;min-width:130px;max-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;white-space:normal;vertical-align:top">
+        <div style="font-size:.65rem;color:var(--muted)">${dte}</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--text);line-height:1.3">${bet}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${prc}${edge?' · '+edge:''}</div>
+        <div style="font-size:.9rem;margin-top:2px" class="${cls}">${ico} ${r==='P'?'待結算':r==='W'?'勝':'敗'}</div>
+      </div>`;
+    }).join('');
+  } else {
+    q('hist').innerHTML = '<span style="color:var(--muted);font-size:.8rem;padding:4px 8px">尚無歷史紀錄</span>';
+  }
 }
 
 load();

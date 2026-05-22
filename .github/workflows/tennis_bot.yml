@@ -1,19 +1,7 @@
 name: Tennis Bot
 
 on:
-  schedule:
-    # 排入 23:00 UTC，延遲後約 07:00-08:00 TW — 澳網/亞洲賻前
-    - cron: "0 23 * * *"
-    # 排入 07:00 UTC，延遲後約 15:30-16:00 TW — 法網/溫網（17:00 TW 開打前）
-    - cron: "0 7 * * *"
-    # 排入 13:00 UTC，延遲後約 21:30-22:00 TW — 美網/北美（23:00 TW 開打前）
-    - cron: "0 13 * * *"
   workflow_dispatch:
-    inputs:
-      mode:
-        description: "run mode: full | live"
-        required: false
-        default: "full"
 
 jobs:
   predict:
@@ -32,22 +20,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run Tennis Bot (full prediction)
-        if: github.event.inputs.mode != 'live'
+      - name: Run Tennis Bot
         env:
           ODDS_API_KEY:    ${{ secrets.ODDS_API_KEY }}
-          NTFY_TOPIC:      ${{ secrets.NTFY_TOPIC }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GIST_TOKEN:      ${{ secrets.GIST_TOKEN }}
           GIST_ID:         ${{ secrets.GIST_ID }}
         run: python tennis_bot.py
-
-      - name: Run Live Update (in-match odds monitoring)
-        if: github.event.inputs.mode == 'live'
-        env:
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-          NTFY_TOPIC:   ${{ secrets.NTFY_TOPIC }}
-        run: python live_update.py
 
       - name: Commit updated picks
         run: |
