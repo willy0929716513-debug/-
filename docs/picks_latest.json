@@ -666,14 +666,6 @@
       "last_update": null
     },
     {
-      "home": "Guiomar Maristany",
-      "away": "Kaitlin Quevedo",
-      "home_score": "",
-      "away_score": "",
-      "sport_title": "WTA French Open",
-      "last_update": null
-    },
-    {
       "home": "Katarina Zavatska",
       "away": "Lucia Bronzetti",
       "home_score": "",
@@ -2291,6 +2283,6 @@
       "exp_games": 40.5
     }
   },
-  "live_updated_at": "2026-05-22 19:31 (台灣時間)",
-  "live_updated_ts": 1779449477
+  "live_updated_at": "2026-05-22 19:36 (台灣時間)",
+  "live_updated_ts": 1779449783
 }
