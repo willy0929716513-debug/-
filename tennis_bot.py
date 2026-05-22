@@ -2084,6 +2084,7 @@ def send_discord(picks: List[dict], stats: dict) -> None:
     if not DISCORD_HOOK:
         return
     now   = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    label  = "🟢 紀錄時間" if is_recording else "⚪ 非紀錄時間"
     lines = ["**\U0001f3be ATP/WTA 每日預測 — %s**" % now.strftime("%Y-%m-%d %H:%M"), "```"]
     if not picks:
         lines.append("今日無符合條件的推薦")
@@ -2229,7 +2230,7 @@ def run() -> None:
                 p["p1"], p["p2"], p["bet_on"], p["best_price"], p["edge"]
             ) for p in picks),
         )
-    send_discord(picks, stats)
+    send_discord(picks, stats, bool(soon_picks))
     log.info("=== Done — %d picks ===", len(picks))
 
 
