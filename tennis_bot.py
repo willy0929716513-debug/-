@@ -1102,7 +1102,7 @@ def get_surface_stats(key: str, surface: str) -> dict:
     players = {**ATP_STATS, **WTA_STATS}
     surf = surface if surface in ("hard", "clay", "grass") else "hard"
     base = dict(players.get(key, {}).get(surf,
-           {"svpt_won": 0.620, "rtpt_won": 0.340, "elo": 1800}))
+           {"svpt_won": 0.610, "rtpt_won": 0.330, "elo": 1500}))
     live_elo = _LIVE_ELO.get(key, {}).get(surf)
     if live_elo:
         base["elo"] = live_elo
@@ -1772,6 +1772,12 @@ def generate_picks(matches: List[dict],
         # Market efficiency: more bookmakers → tighter market → require higher edge
         n_books = odds_info.get("n_books", MIN_BOOKS)
         eff_min_edge = MIN_EDGE_ML + max(0.0, (n_books - 6) * 0.003)
+        # 高賠率安全閥：推薦的賠率 > 2.20 時要求更高 edge，避免模型噪音放大
+        if best_price > 2.20:
+            eff_min_edge = max(eff_min_edge, 0.15)
+        # 市場機率底線：市場認為我們推薦的選手勝率 < 28% → 模型可能誤判，跳過
+        if dv_p < 0.28:
+            continue
 
         if edge < eff_min_edge:
             continue
