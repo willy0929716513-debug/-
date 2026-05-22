@@ -291,14 +291,6 @@
   "recent_history": [],
   "live_matches": [
     {
-      "home": "Borna Gojo",
-      "away": "Jurij Rodionov",
-      "home_score": "",
-      "away_score": "",
-      "sport_title": "ATP French Open",
-      "last_update": null
-    },
-    {
       "home": "Roberto Carballes Baena",
       "away": "Hugo Dellien",
       "home_score": "",
@@ -749,14 +741,6 @@
     {
       "home": "Harmony Tan",
       "away": "Linda Fruhvirtova",
-      "home_score": "",
-      "away_score": "",
-      "sport_title": "WTA French Open",
-      "last_update": null
-    },
-    {
-      "home": "Susan Bandecchi",
-      "away": "Viktoria Hruncakova",
       "home_score": "",
       "away_score": "",
       "sport_title": "WTA French Open",
@@ -2402,6 +2386,6 @@
       "exp_games": 40.2
     }
   },
-  "live_updated_at": "2026-05-22 16:46 (台灣時間)",
-  "live_updated_ts": 1779439565
+  "live_updated_at": "2026-05-22 18:20 (台灣時間)",
+  "live_updated_ts": 1779445211
 }
