@@ -1087,6 +1087,67 @@ _ALIASES: Dict[str, str] = {
 }
 
 
+CHINESE_NAMES: Dict[str, str] = {
+    # ATP Top players
+    "Novak Djokovic": "德約科維奇", "Carlos Alcaraz": "阿爾卡拉斯",
+    "Jannik Sinner": "辛納", "Daniil Medvedev": "梅德韋杰夫",
+    "Alexander Zverev": "茲韋列夫", "Andrey Rublev": "魯布列夫",
+    "Stefanos Tsitsipas": "西西帕斯", "Taylor Fritz": "弗里茨",
+    "Alex de Minaur": "德米諾爾", "Hubert Hurkacz": "胡卡茲",
+    "Grigor Dimitrov": "季米特洛夫", "Tommy Paul": "保羅",
+    "Felix Auger-Aliassime": "奧熱-阿利亞西姆", "Lorenzo Musetti": "穆塞蒂",
+    "Frances Tiafoe": "蒂亞福", "Matteo Berrettini": "貝雷蒂尼",
+    "Casper Ruud": "魯德", "Jack Draper": "德雷珀",
+    "Karen Khachanov": "哈恰諾夫", "Ben Shelton": "謝爾頓",
+    "Alexander Bublik": "布布利克", "Ugo Humbert": "翁貝爾",
+    "Nicolas Jarry": "哈里", "Flavio Cobolli": "科博利",
+    "Holger Rune": "魯內", "Jiri Lehecka": "萊赫卡",
+    "Sebastian Korda": "科爾達", "Alexei Popyrin": "波普林",
+    "Lorenzo Sonego": "索內戈", "Arthur Fils": "費爾斯",
+    "Tallon Griekspoor": "格里克斯普爾", "Matteo Arnaldi": "阿納爾迪",
+    "Hugo Gaston": "加斯頓", "Gael Monfils": "孟菲爾斯",
+    "Ethan Quinn": "奎恩", "Francisco Comesana": "科梅薩尼亞",
+    "Sebastian Baez": "巴耶斯", "Tomas Etcheverry": "埃切維里",
+    "Luciano Darderi": "達德里", "Alejandro Tabilo": "塔比羅",
+    "Alejandro Davidovich Fokina": "達維多維奇", "Francisco Cerundolo": "切倫杜羅",
+    "Adrian Mannarino": "曼納里諾", "Corentin Moutet": "穆泰",
+    "Giovanni Mpetshi Perricard": "佩里卡爾", "Roberto Bautista Agut": "鮑蒂斯塔",
+    "David Goffin": "高芬", "Borna Coric": "科里奇",
+    "Stan Wawrinka": "瓦林卡", "Rafael Nadal": "納達爾",
+    # WTA Top players
+    "Iga Swiatek": "斯維亞泰克", "Aryna Sabalenka": "莎巴蘭卡",
+    "Coco Gauff": "高芙", "Elena Rybakina": "里巴金娜",
+    "Jessica Pegula": "佩古拉", "Madison Keys": "基斯",
+    "Qinwen Zheng": "鄭欽文", "Jasmine Paolini": "保利尼",
+    "Emma Navarro": "納瓦羅", "Barbora Krejcikova": "克雷奇科娃",
+    "Maria Sakkari": "薩卡里", "Daria Kasatkina": "卡薩特金娜",
+    "Petra Kvitova": "科維托娃", "Beatriz Haddad Maia": "阿達德·瑪雅",
+    "Marta Kostyuk": "科斯秋克", "Belinda Bencic": "本西奇",
+    "Danielle Collins": "柯林斯", "Dayana Yastremska": "雅斯特雷姆斯卡",
+    "Ons Jabeur": "賈比爾", "Caroline Garcia": "加西亞",
+    "Paula Badosa": "巴多薩", "Elina Svitolina": "斯維托利娜",
+    "Mirra Andreeva": "安德烈耶娃", "Diana Shnaider": "施奈德",
+    "Liudmila Samsonova": "薩姆索諾娃", "Victoria Azarenka": "阿紮倫卡",
+    "Simona Halep": "哈勒普", "Anhelina Kalinina": "卡利尼娜",
+    "Elena-Gabriela Ruse": "魯塞", "Clara Burel": "比里爾",
+    "Ekaterina Alexandrova": "亞歷山德羅娃", "Anna Kalinskaya": "卡林斯卡婭",
+    "Veronika Kudermetova": "庫德梅托娃", "Anastasia Pavlyuchenkova": "帕夫柳琴科娃",
+}
+
+
+def cn_name(full_name: str) -> str:
+    """Return Chinese name if known, else the last word of the English name."""
+    if not full_name:
+        return full_name
+    if full_name in CHINESE_NAMES:
+        return CHINESE_NAMES[full_name]
+    nl = full_name.lower()
+    for en, cn in CHINESE_NAMES.items():
+        if en.lower() == nl:
+            return cn
+    return full_name.split()[-1] if full_name.split() else full_name
+
+
 def norm_player(name: str) -> str:
     n = name.lower().strip()
     if n in _ALIASES:
@@ -1814,9 +1875,12 @@ def generate_picks(matches: List[dict],
             "surface":        m["surface"],
             "p1":             odds_info["home"],
             "p2":             odds_info["away"],
+            "p1_cn":          cn_name(odds_info["home"]),
+            "p2_cn":          cn_name(odds_info["away"]),
             "p1_key":         p1_key,
             "p2_key":         p2_key,
             "bet_on":         bet_name,
+            "bet_on_cn":      cn_name(bet_name),
             "best_price":     round(best_price, 3),
             "model_p":        round(model_p * 100, 1),
             "dv_p":           round(dv_p * 100, 1),
@@ -2027,10 +2091,13 @@ def send_discord(picks: List[dict], stats: dict) -> None:
         lines.append("今日無符合條件的推薦")
     else:
         for p in picks:
+            p1d = p.get("p1_cn") or p["p1"]
+            p2d = p.get("p2_cn") or p["p2"]
+            bnd = p.get("bet_on_cn") or p["bet_on"]
             lines.append("%s %s %s vs %s" % (
-                p["star"], p["surface_emoji"], p["p1"], p["p2"]))
+                p["star"], p["surface_emoji"], p1d, p2d))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
-                p["bet_on"], p["best_price"], p["model_p"], p["edge"], p["stake"]))
+                bnd, p["best_price"], p["model_p"], p["edge"], p["stake"]))
             parts = []
             adj_parts = []
             if p.get("fat_adj"):      adj_parts.append("體能:%+.1f%%" % p["fat_adj"])
