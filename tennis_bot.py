@@ -1987,23 +1987,25 @@ def save_history(hist: dict) -> None:
         log.warning("save_history: %s", e)
 
 
-def picks_starting_soon(picks: List[dict], now_utc: datetime.datetime,
-                         hours: float = 2.0) -> List[dict]:
-    """Return picks whose match commence time is within `hours` from now (UTC)."""
-    result = []
-    for p in picks:
-        commence = p.get("commence", "")
-        if not commence:
-            continue
-        try:
-            mt = datetime.datetime.fromisoformat(commence.replace("Z", "+00:00"))
-            mt_naive = mt.replace(tzinfo=None) if mt.tzinfo else mt
-            diff_h = (mt_naive - now_utc).total_seconds() / 3600.0
-            if 0.0 <= diff_h <= hours:
-                result.append(p)
-        except Exception:
-            pass
-    return result
+# Regional opening times (TW, UTC+8) — record window = 40 min before each
+# AUS/Asia: 07:00, Europe: 17:00, Americas: 23:00
+_RECORD_WINDOWS: List[Tuple[int, int]] = [
+    (6, 20),   # 06:20–07:00 → AUS/Asia opens 07:00
+    (16, 20),  # 16:20–17:00 → Europe opens 17:00
+    (22, 20),  # 22:20–23:00 → Americas opens 23:00
+]
+
+
+def in_recording_window(now_tw: datetime.datetime) -> bool:
+    """Return True if current TW time is within 40 min before a regional open."""
+    h, m = now_tw.hour, now_tw.minute
+    cur = h * 60 + m
+    for wh, wm in _RECORD_WINDOWS:
+        win_start = wh * 60 + wm
+        win_end   = win_start + 40
+        if win_start <= cur < win_end:
+            return True
+    return False
 
 
 _SLAM_KEYS = {"french_open", "wimbledon", "us_open", "australian_open"}
@@ -2089,12 +2091,11 @@ def send_ntfy(title: str, message: str) -> None:
         log.warning("ntfy: %s", e)
 
 
-def send_discord(picks: List[dict], stats: dict, is_recording: bool = False) -> None:
+def send_discord(picks: List[dict], stats: dict) -> None:
     if not DISCORD_HOOK:
         return
-    now    = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    label  = "🟢 紀錄時間" if is_recording else "⚪ 非紀錄時間"
-    lines  = ["**\U0001f3be ATP/WTA 每日預測 — %s  %s**" % (now.strftime("%Y-%m-%d %H:%M"), label), "```"]
+    now   = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    lines = ["**\U0001f3be ATP/WTA 每日預測 — %s**" % now.strftime("%Y-%m-%d %H:%M"), "```"]
     if not picks:
         lines.append("今日無符合條件的推薦")
     else:
@@ -2226,15 +2227,19 @@ def run() -> None:
     picks   = generate_picks(matches, odds_prev=odds_prev)
     history = load_history()
 
-    # Record picks whose match starts within 2 hours from now
-    now_utc = datetime.datetime.utcnow()
-    soon_picks = picks_starting_soon(picks, now_utc, hours=2.0)
-    if soon_picks:
-        log.info("Recording %d picks starting within 2h to Gist", len(soon_picks))
-        record_picks_to_history(soon_picks, history, now_tw)
-        save_history(history)
+    # Only record Grand Slam picks to Gist, within 40 min before open time
+    if picks and in_recording_window(now_tw):
+        slam_picks = filter_slam_picks(picks)
+        if slam_picks:
+            log.info("Inside recording window — saving %d Grand Slam picks to Gist",
+                     len(slam_picks))
+            record_picks_to_history(slam_picks, history, now_tw)
+            save_history(history)
+        else:
+            log.info("Inside recording window but no Grand Slam picks — skip Gist write")
     else:
-        log.info("No picks starting within 2h — skip Gist write")
+        log.info("Outside recording window (TW %s) — skip Gist write",
+                 now_tw.strftime("%H:%M"))
 
     stats   = compute_stats(history)
     write_json(picks, stats, history, game_preds, now_tw)
