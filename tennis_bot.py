@@ -2097,6 +2097,8 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             bnd = p.get("bet_on_cn") or p["bet_on"]
             lines.append("%s %s [%s] %s vs %s" % (
                 p["star"], p["surface_emoji"], p.get("tour_type", "ATP"), p1d, p2d))
+            lines.append("%s %s %s vs %s" % (
+                p["star"], p["surface_emoji"], p1d, p2d))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
                 bnd, p["best_price"], p["model_p"], p["edge"], p["stake"]))
             parts = []
