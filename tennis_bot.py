@@ -1952,8 +1952,16 @@ def generate_picks(matches: List[dict],
 def load_history() -> dict:
     if not GIST_TOKEN or not GIST_ID:
         return {"bets": []}
-    data = safe_get("https://api.github.com/gists/%s" % GIST_ID)
-    if not data:
+    try:
+        r = requests.get(
+            "https://api.github.com/gists/%s" % GIST_ID,
+            headers={"Authorization": "token %s" % GIST_TOKEN},
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        log.warning("load_history: %s", e)
         return {"bets": []}
     for fname, fd in data.get("files", {}).items():
         if fname.endswith(".json"):
@@ -2081,11 +2089,12 @@ def send_ntfy(title: str, message: str) -> None:
         log.warning("ntfy: %s", e)
 
 
-def send_discord(picks: List[dict], stats: dict) -> None:
+def send_discord(picks: List[dict], stats: dict, is_recording: bool = False) -> None:
     if not DISCORD_HOOK:
         return
-    now   = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-    lines = ["**\U0001f3be ATP/WTA 每日預測 — %s**" % now.strftime("%Y-%m-%d %H:%M"), "```"]
+    now    = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    label  = "🟢 紀錄時間" if is_recording else "⚪ 非紀錄時間"
+    lines  = ["**\U0001f3be ATP/WTA 每日預測 — %s  %s**" % (now.strftime("%Y-%m-%d %H:%M"), label), "```"]
     if not picks:
         lines.append("今日無符合條件的推薦")
     else:
