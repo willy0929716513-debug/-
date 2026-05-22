@@ -138,6 +138,7 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .lm-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0}
 .lm-player{font-size:.85rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lm-sc{font-size:.85rem;font-weight:700;font-family:monospace;color:var(--green);white-space:nowrap;letter-spacing:.3px}
+.lm-sc.empty{color:var(--muted)}
 .lm-updated{font-size:.62rem;color:var(--muted);margin-top:4px}
 
 /* ─── MAIN GRID ─── */
@@ -418,10 +419,12 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 <div class="overlay" id="overlay" style="display:none" onclick="bgClose(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <h2>⚙️ 設定</h2>
+
     <div class="tk-info">
       <div class="tk-info-title">什麼是 Token？</div>
       <p class="tk-info-text">用來授權網頁觸發 GitHub Actions（「立即執行」和「場中更新」按鈕）。Token 只存在你的瀏覽器裡，不會上傳至任何伺服器。</p>
     </div>
+
     <div class="tk-steps">
       <a class="tk-step-link" href="https://github.com/settings/tokens/new?scopes=workflow&description=TennisPredictor" target="_blank">
         <span class="tk-step-icon">①</span>
@@ -433,6 +436,7 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
         <span>複製以 <code>ghp_</code> 開頭的 token，貼到下面</span>
       </div>
     </div>
+
     <div class="input-group" style="margin-top:14px">
       <label>Personal Access Token</label>
       <input type="password" id="tk-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" />
@@ -442,86 +446,438 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
       <button class="btn btn-ghost" onclick="closeModal()">✕ 取消</button>
       <button class="btn btn-primary" onclick="saveTk()">✓ 儲存</button>
     </div>
+
     <div class="modal-divider"></div>
+
     <div class="modal-section-title">🎾 關於本系統</div>
-    <p class="modal-sub-text">本系統採用 <strong>15 因子量化模型</strong>，整合 ELO 評分、Markov 鏈賽局預測、場地勝率、破發轉換率、一發得分率、體能負荷、慣用手分析、賠率蒸汽偵測等多維度指標，對每場 ATP / WTA 比賽進行獨立精算。所有推薦皆基於統計邊際值（Edge）篩選，並以 Kelly 準則分級控管風險。</p>
+    <p class="modal-sub-text">
+      本系統採用 <strong>15 因子量化模型</strong>，整合 ELO 評分、Markov 鏈賽局預測、場地勝率、破發轉換率、一發得分率、體能負荷、慣用手分析、賠率蒸汽偵測等多維度指標，對每場 ATP / WTA 比賽進行獨立精算。所有推薦皆基於統計邊際值（Edge）篩選，並以 Kelly 準則分級控管風險。
+    </p>
     <div class="info-tags" style="margin-bottom:16px">
-      <span class="itag">ATP / WTA 全覆蓋</span><span class="itag">15 因子量化</span><span class="itag">Kelly 分級控注</span><span class="itag">市場效率過濾</span><span class="itag">每日自動更新</span>
+      <span class="itag">ATP / WTA 全覆蓋</span>
+      <span class="itag">15 因子量化</span>
+      <span class="itag">Kelly 分級控注</span>
+      <span class="itag">市場效率過濾</span>
+      <span class="itag">每日自動更新</span>
     </div>
+
     <div class="modal-section-title">🌍 各地區開賽時間（台灣時間 UTC+8）</div>
     <div class="region-grid">
-      <div class="region-row"><span class="r-flag">🇦🇺</span><span class="r-name">澳洲 / 亞洲</span><span class="r-time">07:00–16:00</span><span class="r-ex">澳網、大阪、上海</span></div>
-      <div class="region-row"><span class="r-flag">🇪🇺</span><span class="r-name">歐洲</span><span class="r-time">17:00–01:00</span><span class="r-ex">法網、溫布頓、馬德里、羅馬</span></div>
-      <div class="region-row"><span class="r-flag">🇺🇸</span><span class="r-name">北美</span><span class="r-time">23:00–09:00</span><span class="r-ex">美網、邁阿密、辛辛那提</span></div>
-      <div class="region-row" style="border-bottom:none"><span class="r-flag">🎾</span><span class="r-name">大滿貫</span><span class="r-time"></span><span class="r-ex">澳 07:00 · 法 17:00 · 溫 18:00 · 美 23:00</span></div>
+      <div class="region-row">
+        <span class="r-flag">🇦🇺</span>
+        <span class="r-name">澳洲 / 亞洲</span>
+        <span class="r-time">07:00–16:00</span>
+        <span class="r-ex">澳網、大阪、上海</span>
+      </div>
+      <div class="region-row">
+        <span class="r-flag">🇪🇺</span>
+        <span class="r-name">歐洲</span>
+        <span class="r-time">17:00–01:00</span>
+        <span class="r-ex">法網、溫布頓、馬德里、羅馬</span>
+      </div>
+      <div class="region-row">
+        <span class="r-flag">🇺🇸</span>
+        <span class="r-name">北美</span>
+        <span class="r-time">23:00–09:00</span>
+        <span class="r-ex">美網、邁阿密、辛辛那提</span>
+      </div>
+      <div class="region-row" style="border-bottom:none">
+        <span class="r-flag">🎾</span>
+        <span class="r-name">大滿貫</span>
+        <span class="r-time"></span>
+        <span class="r-ex">澳 07:00 · 法 17:00 · 溫 18:00 · 美 23:00</span>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- MAIN -->
 <div class="page">
+
+  <!-- STATS BAR -->
   <div class="stats-bar">
     <div class="stat"><div class="lbl">已結算</div><div class="num" id="s-n">—</div></div>
     <div class="stat"><div class="lbl">勝率</div><div class="num" id="s-wr">—</div></div>
     <div class="stat"><div class="lbl">ROI</div><div class="num" id="s-roi">—</div></div>
     <div class="stat"><div class="lbl">損益</div><div class="num" id="s-pnl">—</div></div>
   </div>
+
+  <!-- MAIN GRID -->
   <div class="main-grid">
+
+    <!-- LEFT: TABBED PANEL -->
     <div>
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-picks" onclick="switchTab('picks')">📌 今日推薦</button>
-        <button class="tab-btn" id="tab-live" onclick="switchTab('live')">🔴 場中比分<span class="live-badge" id="live-badge" style="display:none"></span></button>
+        <button class="tab-btn" id="tab-live" onclick="switchTab('live')">
+          🔴 場中比分
+          <span class="live-badge" id="live-badge" style="display:none"></span>
+        </button>
         <div style="flex:1"></div>
         <button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄 重新整理</button>
       </div>
-      <div id="tab-picks-panel"><div id="picks"><div class="empty">載入中…</div></div></div>
+
+      <div id="tab-picks-panel">
+        <div id="picks"><div class="empty">載入中…</div></div>
+      </div>
+
       <div id="tab-live-panel" style="display:none">
         <div class="empty" id="live-empty">目前無進行中比賽</div>
         <div class="live-grid" id="live-list"></div>
         <div id="live-updated" style="font-size:.7rem;color:var(--muted);padding:8px 0 4px;text-align:right"></div>
       </div>
     </div>
+
+    <!-- RIGHT: HISTORY SIDEBAR -->
     <div class="hist-sidebar">
-      <div class="hist-hd"><h3>📋 近期戰績</h3><button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄</button></div>
-      <div class="hist-body" id="hist"><div class="hist-empty">載入中…</div></div>
+      <div class="hist-hd">
+        <h3>📋 近期戰績</h3>
+        <button class="btn btn-ghost btn-sm" onclick="refreshData()">🔄</button>
+      </div>
+      <div class="hist-body" id="hist">
+        <div class="hist-empty">載入中…</div>
+      </div>
     </div>
+
   </div>
+
   <div class="footer" id="footer"></div>
-  <div class="tagline-bar" style="margin-top:20px;margin-bottom:16px"><span class="tagline-text">運彩輸不停，Willy 帶你贏</span></div>
+
+  <!-- TAGLINE -->
+  <div class="tagline-bar" style="margin-top:20px;margin-bottom:16px">
+    <span class="tagline-text">運彩輸不停，Willy 帶你贏</span>
+  </div>
 </div>
 
 <script>
-const OWNER='willy0929716513-debug',REPO='-',BRANCH='claude/tennis-prediction-model-OhNiO',WF='tennis_bot.yml';
-const SURF={clay:'🟤 紅土',grass:'🟢 草地',hard:'🔵 硬地'};
-const getTk=()=>localStorage.getItem('gh_tk')||'';
-function sanitizeTk(tk){return tk.replace(/[^\x20-\x7E]/g,'').trim();}
-function saveTk(){const v=document.getElementById('tk-input').value.trim();if(!v){toast('請貼上 Token','err');return;}localStorage.setItem('gh_tk',v);closeModal();toast('Token 已儲存 ✅','ok');}
-function clearTk(){localStorage.removeItem('gh_tk');document.getElementById('tk-input').value='';toast('已清除','info');}
-function openSettings(){const t=getTk();document.getElementById('tk-input').value=t?t.slice(0,10)+'…':'';document.getElementById('overlay').style.display='flex';}
-function closeModal(){document.getElementById('overlay').style.display='none';}
-function bgClose(e){if(e.target.id==='overlay')closeModal();}
-function toast(msg,type='info'){const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),3200);}
-function switchTab(tab){['picks','live'].forEach(t=>{q('tab-'+t).classList.toggle('active',t===tab);const p=q('tab-'+t+'-panel');if(p)p.style.display=t===tab?'':'none';});}
-function refreshData(){const p=document.getElementById('picks');p.style.opacity='.5';load().finally(()=>{p.style.opacity='1';toast('已更新 ✅','ok');});}
-async function run(mode='full'){const tk=sanitizeTk(getTk());if(!tk){openSettings();toast('請先設定 Token','err');return;}const btn=mode==='live'?document.getElementById('btn-live'):document.getElementById('btn-run');btn.disabled=true;try{const res=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WF}/dispatches`,{method:'POST',headers:{'Authorization':'Bearer '+tk,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},body:JSON.stringify({ref:BRANCH,inputs:{mode}})});if(res.status===204){toast('已觸發！約 1–2 分鐘後完成 ✅','ok');setTimeout(()=>{pollStatus();load();},9000);}else if(res.status===401){toast('Token 無效，請重新設定','err');openSettings();}else if(res.status===403){toast('Token 缺少 workflow 權限','err');}else{const j=await res.json().catch(()=>({}));toast('Error '+res.status+(j.message?' — '+j.message:''),'err');}}catch(e){toast('網路錯誤：'+e.message,'err');}finally{setTimeout(()=>{btn.disabled=false;},6000);}}
-async function pollStatus(){const tk=sanitizeTk(getTk());if(!tk)return;try{const res=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?branch=${encodeURIComponent(BRANCH)}&per_page=1`,{headers:{'Authorization':'Bearer '+tk,'Accept':'application/vnd.github+json'}});if(!res.ok)return;const j=await res.json();const r=(j.workflow_runs||[])[0];if(!r)return;const dot=document.getElementById('st-dot'),txt=document.getElementById('st-txt');if(r.status==='completed'){const ok=r.conclusion==='success';dot.className='dot '+(ok?'ok':'err');txt.textContent=ok?'上次成功 ✅':'上次失敗 ❌';}else{dot.className='dot running';txt.textContent=r.status==='in_progress'?'執行中…':'排隊中…';setTimeout(pollStatus,8000);}}catch(_){}}
-function q(id){return document.getElementById(id);}
-function setNum(id,text,cls=''){const el=q(id);el.textContent=text;el.className='num '+cls;}
-let liveEmptyCount=0;
-function relTime(iso){if(!iso)return'';const diff=Math.floor((Date.now()-new Date(iso))/1000);if(diff<60)return'剛剛';if(diff<3600)return Math.floor(diff/60)+' 分鐘前';if(diff<86400)return Math.floor(diff/3600)+' 小時前';return Math.floor(diff/86400)+' 天前';}
-function soonBadge(iso){if(!iso)return'';const mins=Math.floor((new Date(iso)-Date.now())/60000);if(mins>0&&mins<=90)return`<span class="soon-badge">${mins<30?'即將開賽':mins+'分後'}</span>`;return'';}
-function confScore(p){if(p.conf!=null)return Math.round(p.conf);const edge=p.edge??0;const base=Math.min(82,Math.max(30,50+edge*1.0));const bonus={A:5,B:0,C:-5}[p.tier||'C']??0;return Math.round(Math.min(92,Math.max(20,base+bonus)));}
-function confColor(score){return score>=80?'g':score>=65?'o':'';}
-function fmtTW(iso){if(!iso)return'';return new Date(iso).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'});}
-function fmtLoad(n){if(n==null)return'—';if(n<=3)return'<span style="color:var(--green)">輕 ('+n+'場)</span>';if(n<=6)return'<span style="color:var(--gold)">中 ('+n+'場)</span>';return'<span style="color:var(--red)">重 ('+n+'場)</span>';}
-function cmp(a,b,h){if(a==null||b==null)return['',''];const c1=h?a>b:a<b,c2=h?b>a:b<a;return[c1?'better':c2?'worse':'',c2?'better':c1?'worse':''];}
-const TOURN_ZH={french_open:'法國公開賽',roland_garros:'法國公開賽',wimbledon:'溫布頓',us_open:'美國公開賽',australian_open:'澳洲公開賽',madrid:'馬德里大師賽',madrid_open:'馬德里大師賽',monte_carlo:'蒙地卡羅大師賽',rome:'羅馬大師賽',italian_open:'羅馬大師賽',miami:'邁阿密大師賽',indian_wells:'印地安泉大師賽',toronto:'多倫多大師賽',canada:'加拿大大師賽',cincinnati:'辛辛那提大師賽',shanghai:'上海大師賽',paris:'巴黎大師賽',halle:'哈雷草地賽',queens:'女王盃',barcelona:'巴塞隆納公開賽',estoril:'葡萄牙公開賽',geneva:'日內瓦公開賽',lyon:'里昂公開賽',hamburg:'漢堡公開賽',eastbourne:'伊斯特本草地賽'};
-function fmtTournName(p){const tk=(p.tournament||'').toLowerCase().replace(/-/g,'_');const ttl=(p.sport_title||'').replace(/^tennis\s+/i,'').trim();for(const[k,zh]of Object.entries(TOURN_ZH)){if(tk.includes(k))return zh;}return ttl||p.tour||tk||'其他賽事';}
-function dayLabel(iso){if(!iso)return{key:'?',label:'日期未知',cls:''};const tw=t=>new Date(t.getTime()+8*3600*1000).toISOString().slice(0,10);const d=new Date(iso),now=new Date();const md=tw(d),td=tw(now);if(md===td)return{key:md,label:'今日',cls:'today'};if(md===tw(new Date(now.getTime()+86400000)))return{key:md,label:'明日',cls:'tomorrow'};if(md===tw(new Date(now.getTime()+2*86400000)))return{key:md,label:'後天',cls:''};const[,m,dd]=md.split('-');return{key:md,label:`${+m}/${+dd}`,cls:''};}
-function renderPick(p){const surf=p.surface||'hard',tier=p.tier||'C',conf=confScore(p),cc=confColor(conf);const modelP=p.model_p!=null?p.model_p+'%':'—',marketP=p.dv_p!=null?p.dv_p+'%':'—',edgeStr=p.edge!=null?'+'+p.edge+'%':'—';const tierLbl={A:'A 精選',B:'B 推薦',C:'C 關注'}[tier]||tier;const fs1=p.fs_pct1,fs2=p.fs_pct2,bp1=p.bp_conv1,bp2=p.bp_conv2,ld1=p.load1,ld2=p.load2;const[fc1,fc2]=cmp(fs1,fs2,true),[bc1,bc2]=cmp(bp1,bp2,true);const statsRows=[(fs1!=null||fs2!=null)?`<div class="ps-row"><span class="ps-lbl">一發得分率</span><span class="ps-val ${fc1}">${fs1!=null?fs1+'%':'—'}</span><span class="ps-val ${fc2}">${fs2!=null?fs2+'%':'—'}</span></div>`:'',(bp1!=null||bp2!=null)?`<div class="ps-row"><span class="ps-lbl">破發轉換率</span><span class="ps-val ${bc1}">${bp1!=null?bp1+'%':'—'}</span><span class="ps-val ${bc2}">${bp2!=null?bp2+'%':'—'}</span></div>`:'',(ld1!=null||ld2!=null)?`<div class="ps-row"><span class="ps-lbl">近期負荷</span><span class="ps-val">${fmtLoad(ld1)}</span><span class="ps-val">${fmtLoad(ld2)}</span></div>`:''].filter(Boolean).join('');const p1last=p.p1?p.p1.split(' ').pop():p.p1,p2last=p.p2?p.p2.split(' ').pop():p.p2;const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';return`<div class="pick tier-${tier}"><div class="pick-head"><span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span><span class="tag ${surf}">${SURF[surf]||surf}</span><span class="tier-badge">${tierLbl}</span>${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)}</span>`:''}${soonBadge(p.commence)}</div><div class="conf-row"><div class="conf-meta"><span>模型信心指數</span><strong class="${cc}">${conf} / 100</strong></div><div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div></div><div class="pick-metrics"><div class="metric"><div class="m-lbl">模型勝率</div><div class="m-val">${modelP}</div></div><div class="metric"><div class="m-lbl">市場隱含</div><div class="m-val">${marketP}</div></div><div class="metric"><div class="m-lbl">優勢 Edge</div><div class="m-val g">${edgeStr}</div></div><div class="metric"><div class="m-lbl">信心評分</div><div class="m-val ${cc}">${conf}<span style="font-size:.6rem;color:var(--muted);font-weight:400">/100</span></div></div></div>${statsBlock}<div class="pick-bet"><div><div class="bet-lbl">推薦投注</div><div class="bet-name">${p.bet_on||'—'}</div></div><div class="bet-right"><span class="price">@ ${p.best_price||'—'}</span><span class="edge-pill">edge ${edgeStr}</span><span class="stake">建議 $${p.stake||'—'}</span></div></div></div>`;}
-async function load(){let data;try{const r=await fetch('picks_latest.json?t='+Date.now());data=await r.json();}catch(e){q('picks').innerHTML='<div class="empty">⚠️ 無法載入資料</div>';return;}const genAt=data.generated_at||'—',genIso=data.generated_at_iso||'';q('footer').innerHTML='最後更新：'+genAt+(genIso?`　<span style="color:var(--muted);font-size:.68rem">(${relTime(genIso)})</span>`:'');const st=data.stats||{};const wr=st.win_rate??0,roi=st.roi??0,pnl=st.pnl??0;q('s-n').textContent=st.settled??'—';setNum('s-wr',wr?wr.toFixed(1)+'%':'—',wr>=55?'g':'');setNum('s-roi',roi?(roi>0?'+':'')+roi.toFixed(1)+'%':'—',roi>0?'g':roi<0?'r':'');setNum('s-pnl',pnl?(pnl>0?'+':'')+pnl.toFixed(0):'—',pnl>0?'g':pnl<0?'r':'');const lives=data.live_matches||[];const badge=q('live-badge');if(lives.length){liveEmptyCount=0;badge.textContent=lives.length;badge.style.display='';q('live-empty').style.display='none';const upd=data.live_updated_at?data.live_updated_at.replace(' (台灣時間)',''):'';const updTs=data.live_updated_ts?relTime(new Date(data.live_updated_ts*1000).toISOString()):'';q('live-updated').textContent=upd?'更新 '+upd+(updTs?' ('+updTs+')':''):'';q('live-list').innerHTML=lives.map(m=>{const hs=m.home_score||'',as=m.away_score||'';const tourn=(m.sport_title||'').replace(/^Tennis\s+/i,'');const updTime=m.last_update?new Date(m.last_update).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}):'';const noScore=!hs&&!as;return`<div class="lm-card"><div class="lm-dot"></div><div class="lm-body">${tourn?`<div class="lm-tournament">${tourn}</div>`:''  }${noScore?`<div class="lm-row"><span class="lm-player" style="font-weight:600">${m.home||'?'}</span></div><div class="lm-row"><span class="lm-player" style="font-weight:600">${m.away||'?'}</span></div><div class="lm-updated" style="margin-top:6px">⏳ 待賽中 / 比分未回傳</div>`:`<div class="lm-row"><span class="lm-player">${m.home||'?'}</span><span class="lm-sc">${hs}</span></div><div class="lm-row"><span class="lm-player">${m.away||'?'}</span><span class="lm-sc">${as}</span></div>${updTime?`<div class="lm-updated">更新 ${updTime}</div>`:''}`}</div></div>`;}).join('');}else{liveEmptyCount++;badge.style.display='none';if(liveEmptyCount>=3){q('live-empty').style.display='';q('live-list').innerHTML='';q('live-updated').textContent='';}}const picks=data.picks||[];if(!picks.length){q('picks').innerHTML='<div class="empty">今日無符合條件的推薦</div>';}else{const surfIcon={clay:'🟤',grass:'🟢',hard:'🔵'};const dayMap={};picks.forEach(p=>{const dl=dayLabel(p.commence);const tKey=p.tournament||p.sport_title||p.tour||'other';if(!dayMap[dl.key])dayMap[dl.key]={meta:dl,tMap:{}};if(!dayMap[dl.key].tMap[tKey])dayMap[dl.key].tMap[tKey]={tKey,surface:p.surface||'hard',tour:p.tour||'',items:[],p};dayMap[dl.key].tMap[tKey].items.push(p);});q('picks').innerHTML=Object.values(dayMap).map(dg=>{const tournBlocks=Object.values(dg.tMap).map(tg=>{const name=fmtTournName(tg.p),icon=surfIcon[tg.surface]||'⚪',sfCls='surf-'+(tg.surface||'hard'),cnt=tg.items.length;return`<div class="tourn-group"><div class="tourn-hd ${sfCls}"><span class="t-icon">${icon}</span><span class="t-name">${name}</span><span class="t-level">${tg.tour}</span><span class="t-count">${cnt} 場</span></div>${tg.items.map(renderPick).join('')}</div>`;}).join('');return`<div class="day-group"><div class="day-tag ${dg.meta.cls}">${dg.meta.label}&nbsp;&nbsp;${dg.meta.key}</div>${tournBlocks}</div>`;}).join('');}const hist=data.recent_history||[];q('hist').innerHTML=hist.length?hist.map(b=>{const r=b.result,ico=r==='W'?'✅':r==='L'?'❌':r==='P'?'🔄':'⏳';const dte=(b.date||'').slice(5)||'—',p1=b.p1||b.home||'?',p2=b.p2||b.away||'?';const bet=b.bet_on||b.label||'—',prc=b.price?'@'+b.price:'';return`<div class="hr"><div class="hr-info"><div class="hr-matchup">${p1} vs ${p2}</div><div class="hr-meta"><span class="hr-bet">${bet}</span>${prc?' · '+prc:''}</div><div class="hr-date">${dte}</div></div><div class="hr-result ${r||'pend'}">${ico}</div></div>`;}).join(''):'<div class="hist-empty">尚無歷史紀錄</div>';}
-load();pollStatus();setInterval(load,5*60*1000);setInterval(pollStatus,30*1000);
-document.addEventListener('keydown',e=>{if(e.key==='r'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName!=='INPUT')refreshData();});
+const OWNER  = 'willy0929716513-debug';
+const REPO   = '-';
+const BRANCH = 'claude/tennis-prediction-model-OhNiO';
+const WF     = 'tennis_bot.yml';
+const SURF   = {clay:'🟤 紅土', grass:'🟢 草地', hard:'🔵 硬地'};
+
+const getTk = () => localStorage.getItem('gh_tk') || '';
+function sanitizeTk(tk){ return tk.replace(/[^\x20-\x7E]/g,'').trim(); }
+function saveTk(){
+  const v = document.getElementById('tk-input').value.trim();
+  if(!v){ toast('請貼上 Token','err'); return; }
+  localStorage.setItem('gh_tk', v);
+  closeModal();
+  toast('Token 已儲存 ✅','ok');
+}
+function clearTk(){ localStorage.removeItem('gh_tk'); document.getElementById('tk-input').value=''; toast('已清除','info'); }
+function openSettings(){
+  const t=getTk(); document.getElementById('tk-input').value = t ? t.slice(0,10)+'…' : '';
+  document.getElementById('overlay').style.display='flex';
+}
+function closeModal(){ document.getElementById('overlay').style.display='none'; }
+function bgClose(e){ if(e.target.id==='overlay') closeModal(); }
+
+function toast(msg, type='info'){
+  const el=document.createElement('div');
+  el.className='toast '+type; el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+
+function switchTab(tab){
+  ['picks','live'].forEach(t => {
+    q('tab-'+t).classList.toggle('active', t===tab);
+    const panel = q('tab-'+t+'-panel');
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+  });
+}
+
+function refreshData(){
+  const picks=document.getElementById('picks');
+  picks.style.opacity='.5';
+  load().finally(()=>{ picks.style.opacity='1'; toast('已更新 ✅','ok'); });
+}
+
+async function run(mode='full'){
+  const tk=sanitizeTk(getTk());
+  if(!tk){ openSettings(); toast('請先設定 Token','err'); return; }
+  const btn = mode==='live' ? document.getElementById('btn-live') : document.getElementById('btn-run');
+  btn.disabled=true;
+  try{
+    const res = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WF}/dispatches`,
+      { method:'POST',
+        headers:{'Authorization':'Bearer '+tk,'Accept':'application/vnd.github+json',
+                 'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+        body: JSON.stringify({ref:BRANCH, inputs:{mode}}) }
+    );
+    if(res.status===204){
+      toast('已觸發！約 1–2 分鐘後完成 ✅','ok');
+      setTimeout(()=>{ pollStatus(); load(); }, 9000);
+    } else if(res.status===401){
+      toast('Token 無效，請重新設定','err'); openSettings();
+    } else if(res.status===403){
+      toast('Token 缺少 workflow 權限（請重新產生）','err');
+    } else {
+      const j=await res.json().catch(()=>({}));
+      toast('Error '+res.status+(j.message?' — '+j.message:''),'err');
+    }
+  } catch(e){ toast('網路錯誤：'+e.message,'err'); }
+  finally{ setTimeout(()=>{ btn.disabled=false; },6000); }
+}
+
+async function pollStatus(){
+  const tk=sanitizeTk(getTk()); if(!tk) return;
+  try{
+    const res = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?branch=${encodeURIComponent(BRANCH)}&per_page=1`,
+      {headers:{'Authorization':'Bearer '+tk,'Accept':'application/vnd.github+json'}}
+    );
+    if(!res.ok) return;
+    const j=await res.json();
+    const r=(j.workflow_runs||[])[0]; if(!r) return;
+    const dot=document.getElementById('st-dot'), txt=document.getElementById('st-txt');
+    if(r.status==='completed'){
+      const ok=r.conclusion==='success';
+      dot.className='dot '+(ok?'ok':'err');
+      txt.textContent = ok ? '上次成功 ✅' : '上次失敗 ❌';
+    } else {
+      dot.className='dot running';
+      txt.textContent = r.status==='in_progress' ? '執行中…' : '排隊中…';
+      setTimeout(pollStatus, 8000);
+    }
+  } catch(_){}
+}
+
+function q(id){ return document.getElementById(id); }
+function setNum(id,text,cls=''){
+  const el=q(id); el.textContent=text; el.className='num '+cls;
+}
+
+let liveEmptyCount = 0;
+
+function relTime(iso){
+  if(!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if(diff < 60)  return '剛剛';
+  if(diff < 3600) return Math.floor(diff/60) + ' 分鐘前';
+  if(diff < 86400) return Math.floor(diff/3600) + ' 小時前';
+  return Math.floor(diff/86400) + ' 天前';
+}
+
+function soonBadge(iso){
+  if(!iso) return '';
+  const mins = Math.floor((new Date(iso) - Date.now()) / 60000);
+  if(mins > 0 && mins <= 90) return `<span class="soon-badge">${mins < 30 ? '即將開賽' : mins+'分後'}</span>`;
+  return '';
+}
+
+function confScore(p){
+  if(p.conf != null) return Math.round(p.conf);
+  const edge = p.edge ?? 0;
+  const base  = Math.min(82, Math.max(30, 50 + edge * 1.0));
+  const bonus = {A:5, B:0, C:-5}[p.tier||'C'] ?? 0;
+  return Math.round(Math.min(92, Math.max(20, base + bonus)));
+}
+function confColor(score){ return score >= 80 ? 'g' : score >= 65 ? 'o' : ''; }
+
+function fmtTW(iso){
+  if(!iso) return '';
+  return new Date(iso).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'});
+}
+
+function fmtLoad(n){
+  if(n == null) return '—';
+  if(n <= 3)  return '<span style="color:var(--green)">輕 ('+n+'場)</span>';
+  if(n <= 6)  return '<span style="color:var(--gold)">中 ('+n+'場)</span>';
+  return '<span style="color:var(--red)">重 ('+n+'場)</span>';
+}
+
+function cmp(a, b, higherBetter){
+  if(a==null||b==null) return ['',''];
+  const c1better = higherBetter ? a>b : a<b;
+  const c2better = higherBetter ? b>a : b<a;
+  return [c1better?'better':c2better?'worse':'', c2better?'better':c1better?'worse':''];
+}
+
+const TOURN_ZH = {
+  french_open:'法國公開賽', roland_garros:'法國公開賽',
+  wimbledon:'溫布頓', us_open:'美國公開賽', australian_open:'澳洲公開賽',
+  madrid:'馬德里大師賽', madrid_open:'馬德里大師賽',
+  monte_carlo:'蒙地卡羅大師賽', rome:'羅馬大師賽', italian_open:'羅馬大師賽',
+  miami:'邁阿密大師賽', indian_wells:'印地安泉大師賽',
+  toronto:'多倫多大師賽', canada:'加拿大大師賽',
+  cincinnati:'辛辛那提大師賽', shanghai:'上海大師賽', paris:'巴黎大師賽',
+  halle:'哈雷草地賽', queens:'女王盃', barcelona:'巴塞隆納公開賽',
+  estoril:'葡萄牙公開賽', geneva:'日內瓦公開賽', lyon:'里昂公開賽',
+  hamburg:'漢堡公開賽', eastbourne:'伊斯特本草地賽',
+};
+
+function fmtTournName(p){
+  const tk  = (p.tournament||'').toLowerCase().replace(/-/g,'_');
+  const ttl = (p.sport_title||'').replace(/^tennis\s+/i,'').trim();
+  for(const [k,zh] of Object.entries(TOURN_ZH)){
+    if(tk.includes(k)) return zh;
+  }
+  return ttl || p.tour || tk || '其他賽事';
+}
+
+function dayLabel(iso){
+  if(!iso) return {key:'?', label:'日期未知', cls:''};
+  const tw = t => new Date(t.getTime()+8*3600*1000).toISOString().slice(0,10);
+  const d=new Date(iso), now=new Date();
+  const md=tw(d), td=tw(now);
+  if(md===td) return {key:md, label:'今日', cls:'today'};
+  if(md===tw(new Date(now.getTime()+86400000))) return {key:md, label:'明日', cls:'tomorrow'};
+  if(md===tw(new Date(now.getTime()+2*86400000))) return {key:md, label:'後天', cls:''};
+  const [,m,dd]=md.split('-');
+  return {key:md, label:`${+m}/${+dd}`, cls:''};
+}
+
+function renderPick(p){
+  const surf  = p.surface || 'hard';
+  const tier  = p.tier    || 'C';
+  const conf  = confScore(p);
+  const cc    = confColor(conf);
+  const modelP  = p.model_p  != null ? p.model_p+'%'  : '—';
+  const marketP = p.dv_p     != null ? p.dv_p+'%'     : '—';
+  const edgeStr = p.edge     != null ? '+'+p.edge+'%' : '—';
+  const tierLbl = {A:'A 精選', B:'B 推薦', C:'C 關注'}[tier] || tier;
+  const fs1=p.fs_pct1, fs2=p.fs_pct2, bp1=p.bp_conv1, bp2=p.bp_conv2, ld1=p.load1, ld2=p.load2;
+  const [fc1,fc2]=cmp(fs1,fs2,true), [bc1,bc2]=cmp(bp1,bp2,true);
+  const statsRows=[
+    (fs1!=null||fs2!=null)?`<div class="ps-row"><span class="ps-lbl">一發得分率</span><span class="ps-val ${fc1}">${fs1!=null?fs1+'%':'—'}</span><span class="ps-val ${fc2}">${fs2!=null?fs2+'%':'—'}</span></div>`:'',
+    (bp1!=null||bp2!=null)?`<div class="ps-row"><span class="ps-lbl">破發轉換率</span><span class="ps-val ${bc1}">${bp1!=null?bp1+'%':'—'}</span><span class="ps-val ${bc2}">${bp2!=null?bp2+'%':'—'}</span></div>`:'',
+    (ld1!=null||ld2!=null)?`<div class="ps-row"><span class="ps-lbl">近期負荷</span><span class="ps-val">${fmtLoad(ld1)}</span><span class="ps-val">${fmtLoad(ld2)}</span></div>`:'',
+  ].filter(Boolean).join('');
+  const p1last=p.p1?p.p1.split(' ').pop():p.p1;
+  const p2last=p.p2?p.p2.split(' ').pop():p.p2;
+  const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
+  return `<div class="pick tier-${tier}">
+    <div class="pick-head">
+      <span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span>
+      <span class="tag ${surf}">${SURF[surf]||surf}</span>
+      <span class="tier-badge">${tierLbl}</span>
+      ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)}</span>`:''}
+      ${soonBadge(p.commence)}
+    </div>
+    <div class="conf-row">
+      <div class="conf-meta"><span>模型信心指數</span><strong class="${cc}">${conf} / 100</strong></div>
+      <div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>
+    </div>
+    <div class="pick-metrics">
+      <div class="metric"><div class="m-lbl">模型勝率</div><div class="m-val">${modelP}</div></div>
+      <div class="metric"><div class="m-lbl">市場隱含</div><div class="m-val">${marketP}</div></div>
+      <div class="metric"><div class="m-lbl">優勢 Edge</div><div class="m-val g">${edgeStr}</div></div>
+      <div class="metric"><div class="m-lbl">信心評分</div><div class="m-val ${cc}">${conf}<span style="font-size:.6rem;color:var(--muted);font-weight:400">/100</span></div></div>
+    </div>
+    ${statsBlock}
+    <div class="pick-bet">
+      <div><div class="bet-lbl">推薦投注</div><div class="bet-name">${p.bet_on||'—'}</div></div>
+      <div class="bet-right">
+        <span class="price">@ ${p.best_price||'—'}</span>
+        <span class="edge-pill">edge ${edgeStr}</span>
+        <span class="stake">建議 $${p.stake||'—'}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function load(){
+  let data;
+  try{
+    const r = await fetch('picks_latest.json?t='+Date.now());
+    data = await r.json();
+  } catch(e){
+    q('picks').innerHTML = '<div class="empty">⚠️ 無法載入資料<br><small>確認 picks_latest.json 是否已產生</small></div>';
+    return;
+  }
+
+  const genAt  = data.generated_at || '—';
+  const genIso = data.generated_at_iso || '';
+  q('footer').innerHTML = '最後更新：' + genAt + (genIso ? `　<span style="color:var(--muted);font-size:.68rem">(${relTime(genIso)})</span>` : '');
+
+  const st=data.stats||{};
+  const wr=st.win_rate??0, roi=st.roi??0, pnl=st.pnl??0;
+  q('s-n').textContent = st.settled ?? '—';
+  setNum('s-wr',  wr  ? wr.toFixed(1)+'%'  : '—', wr>=55?'g':'');
+  setNum('s-roi', roi ? (roi>0?'+':'')+roi.toFixed(1)+'%' : '—', roi>0?'g':roi<0?'r':'');
+  setNum('s-pnl', pnl ? (pnl>0?'+':'')+pnl.toFixed(0) : '—', pnl>0?'g':pnl<0?'r':'');
+
+  const lives = data.live_matches || [];
+  const badge = q('live-badge');
+  if(lives.length){
+    liveEmptyCount = 0;
+    badge.textContent = lives.length;
+    badge.style.display = '';
+    q('live-empty').style.display = 'none';
+    const upd = data.live_updated_at ? data.live_updated_at.replace(' (台灣時間)','') : '';
+    const updTs = data.live_updated_ts ? relTime(new Date(data.live_updated_ts*1000).toISOString()) : '';
+    q('live-updated').textContent = upd ? '更新 '+upd+(updTs?' ('+updTs+')':'') : '';
+    q('live-list').innerHTML = lives.map(m => {
+      const hs=m.home_score||'', as=m.away_score||'';
+      const tourn=(m.sport_title||'').replace(/^Tennis\s+/i,'');
+      const updTime=m.last_update?new Date(m.last_update).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'}):'';
+      const noScore = !hs && !as;
+      return `<div class="lm-card"><div class="lm-dot"></div><div class="lm-body">
+        ${tourn?`<div class="lm-tournament">${tourn}</div>`:''}
+        ${noScore
+          ? `<div class="lm-row"><span class="lm-player" style="font-weight:600">${m.home||'?'}</span></div>
+             <div class="lm-row"><span class="lm-player" style="font-weight:600">${m.away||'?'}</span></div>
+             <div class="lm-updated" style="margin-top:6px">⏳ 待賽中 / 比分未回傳</div>`
+          : `<div class="lm-row"><span class="lm-player">${m.home||'?'}</span><span class="lm-sc">${hs}</span></div>
+             <div class="lm-row"><span class="lm-player">${m.away||'?'}</span><span class="lm-sc">${as}</span></div>
+             ${updTime?`<div class="lm-updated">更新 ${updTime}</div>`:''}`}
+      </div></div>`;
+    }).join('');
+  } else {
+    liveEmptyCount++;
+    badge.style.display = 'none';
+    if(liveEmptyCount >= 3){
+      q('live-empty').style.display = '';
+      q('live-list').innerHTML = '';
+      q('live-updated').textContent = '';
+    }
+  }
+
+  const picks = data.picks || [];
+  if(!picks.length){
+    q('picks').innerHTML = '<div class="empty">今日無符合條件的推薦<br><small>模型尚未找到足夠邊際值的機會</small></div>';
+  } else {
+    const surfIcon={clay:'🟤',grass:'🟢',hard:'🔵'};
+    const dayMap={};
+    picks.forEach(p=>{
+      const dl=dayLabel(p.commence);
+      const tKey=p.tournament||p.sport_title||p.tour||'other';
+      if(!dayMap[dl.key]) dayMap[dl.key]={meta:dl,tMap:{}};
+      if(!dayMap[dl.key].tMap[tKey]) dayMap[dl.key].tMap[tKey]={tKey,surface:p.surface||'hard',tour:p.tour||'',items:[],p};
+      dayMap[dl.key].tMap[tKey].items.push(p);
+    });
+    q('picks').innerHTML=Object.values(dayMap).map(dg=>{
+      const tournBlocks=Object.values(dg.tMap).map(tg=>{
+        const name=fmtTournName(tg.p),icon=surfIcon[tg.surface]||'⚪',sfCls='surf-'+(tg.surface||'hard'),cnt=tg.items.length;
+        return `<div class="tourn-group"><div class="tourn-hd ${sfCls}"><span class="t-icon">${icon}</span><span class="t-name">${name}</span><span class="t-level">${tg.tour}</span><span class="t-count">${cnt} 場</span></div>${tg.items.map(renderPick).join('')}</div>`;
+      }).join('');
+      return `<div class="day-group"><div class="day-tag ${dg.meta.cls}">${dg.meta.label}&nbsp;&nbsp;${dg.meta.key}</div>${tournBlocks}</div>`;
+    }).join('');
+  }
+
+  const hist = data.recent_history || [];
+  q('hist').innerHTML = hist.length
+    ? hist.map(b=>{
+        const r=b.result,ico=r==='W'?'✅':r==='L'?'❌':r==='P'?'🔄':'⏳';
+        const dte=(b.date||'').slice(5)||'—',p1=b.p1||b.home||'?',p2=b.p2||b.away||'?';
+        const bet=b.bet_on||b.label||'—',prc=b.price?'@'+b.price:'';
+        return `<div class="hr"><div class="hr-info"><div class="hr-matchup">${p1} vs ${p2}</div><div class="hr-meta"><span class="hr-bet">${bet}</span>${prc?' · '+prc:''}</div><div class="hr-date">${dte}</div></div><div class="hr-result ${r||'pend'}">${ico}</div></div>`;
+      }).join('')
+    : '<div class="hist-empty">尚無歷史紀錄</div>';
+}
+
+load();
+pollStatus();
+setInterval(load, 5*60*1000);
+setInterval(pollStatus, 30*1000);
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT')
+    refreshData();
+});
 </script>
 </body>
 </html>
