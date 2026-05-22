@@ -234,14 +234,6 @@
   "recent_history": [],
   "live_matches": [
     {
-      "home": "Emilio Nava",
-      "away": "Pedro Martinez",
-      "home_score": "",
-      "away_score": "",
-      "sport_title": "ATP French Open",
-      "last_update": null
-    },
-    {
       "home": "Pierre-Hugues Herbert",
       "away": "Leandro Riedi",
       "home_score": "",
@@ -2251,6 +2243,6 @@
       "exp_games": 40.5
     }
   },
-  "live_updated_at": "2026-05-22 21:38 (台灣時間)",
-  "live_updated_ts": 1779457125
+  "live_updated_at": "2026-05-22 21:43 (台灣時間)",
+  "live_updated_ts": 1779457430
 }
