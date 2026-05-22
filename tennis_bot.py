@@ -1870,6 +1870,7 @@ def generate_picks(matches: List[dict],
             "surface_emoji":  surface_emoji,
             "tour":           TOUR_META.get(m["tour_level"], {}).get("name", m["tour_level"]),
             "tour_level":     m["tour_level"],
+            "tour_type":      "WTA" if pred.get("is_wta") else "ATP",
             "tournament":     m.get("tournament", ""),
             "sport_title":    m.get("sport_title", ""),
             "surface":        m["surface"],
@@ -2094,8 +2095,8 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             p1d = p.get("p1_cn") or p["p1"]
             p2d = p.get("p2_cn") or p["p2"]
             bnd = p.get("bet_on_cn") or p["bet_on"]
-            lines.append("%s %s %s vs %s" % (
-                p["star"], p["surface_emoji"], p1d, p2d))
+            lines.append("%s %s [%s] %s vs %s" % (
+                p["star"], p["surface_emoji"], p.get("tour_type", "ATP"), p1d, p2d))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
                 bnd, p["best_price"], p["model_p"], p["edge"], p["stake"]))
             parts = []
