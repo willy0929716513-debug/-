@@ -1911,6 +1911,7 @@ def generate_picks(matches: List[dict],
             "tb_win1":        round(pred.get("tb_win1", 0.5) * 100, 1),
             "tb_win2":        round(pred.get("tb_win2", 0.5) * 100, 1),
             "bp_save1":       round(pred.get("bp_save1", 0.6) * 100, 1),
+            "bp_save2":       round(pred.get("bp_save2", 0.6),
             "bp_save2":       round(pred.get("bp_save2", 0.6) * 100, 1),
             "df_rate1":       round(pred.get("df_rate1", 0.04) * 100, 2),
             "df_rate2":       round(pred.get("df_rate2", 0.04) * 100, 2),
@@ -1979,25 +1980,23 @@ def save_history(hist: dict) -> None:
         log.warning("save_history: %s", e)
 
 
-# Regional opening times (TW, UTC+8) — record window = 40 min before each
-# AUS/Asia: 07:00, Europe: 17:00, Americas: 23:00
-_RECORD_WINDOWS: List[Tuple[int, int]] = [
-    (6, 20),   # 06:20–07:00 → AUS/Asia opens 07:00
-    (16, 20),  # 16:20–17:00 → Europe opens 17:00
-    (22, 20),  # 22:20–23:00 → Americas opens 23:00
-]
-
-
-def in_recording_window(now_tw: datetime.datetime) -> bool:
-    """Return True if current TW time is within 40 min before a regional open."""
-    h, m = now_tw.hour, now_tw.minute
-    cur = h * 60 + m
-    for wh, wm in _RECORD_WINDOWS:
-        win_start = wh * 60 + wm
-        win_end   = win_start + 40
-        if win_start <= cur < win_end:
-            return True
-    return False
+def picks_starting_soon(picks: List[dict], now_utc: datetime.datetime,
+                         hours: float = 2.0) -> List[dict]:
+    """Return picks whose match commence time is within `hours` from now (UTC)."""
+    result = []
+    for p in picks:
+        commence = p.get("commence", "")
+        if not commence:
+            continue
+        try:
+            mt = datetime.datetime.fromisoformat(commence.replace("Z", "+00:00"))
+            mt_naive = mt.replace(tzinfo=None) if mt.tzinfo else mt
+            diff_h = (mt_naive - now_utc).total_seconds() / 3600.0
+            if 0.0 <= diff_h <= hours:
+                result.append(p)
+        except Exception:
+            pass
+    return result
 
 
 _SLAM_KEYS = {"french_open", "wimbledon", "us_open", "australian_open"}
@@ -2008,7 +2007,6 @@ def filter_slam_picks(picks: List[dict]) -> List[dict]:
     slam_picks = [p for p in picks if p.get("tournament", "") in _SLAM_KEYS]
     if not slam_picks:
         return []
-    # Determine which slam is dominant (most picks) and keep only that slam
     from collections import Counter
     dominant = Counter(p["tournament"] for p in slam_picks).most_common(1)[0][0]
     return [p for p in slam_picks if p["tournament"] == dominant]
@@ -2019,7 +2017,6 @@ def record_picks_to_history(picks: List[dict], hist: dict,
     """Append today's picks as pending bets if not already recorded."""
     bets   = hist.setdefault("bets", [])
     today  = now_tw.strftime("%Y-%m-%d")
-    # Deduplicate: skip picks already recorded for same matchup today
     existing = {
         (b["p1"], b["p2"], b["date"])
         for b in bets
@@ -2041,7 +2038,7 @@ def record_picks_to_history(picks: List[dict], hist: dict,
             "tier":     p["tier"],
             "surface":  p["surface"],
             "tour":     p["tour"],
-            "result":   "P",   # pending — update manually or via result bot
+            "result":   "P",
         })
         existing.add(key)
         added += 1
@@ -2097,11 +2094,8 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             bnd = p.get("bet_on_cn") or p["bet_on"]
             lines.append("%s %s [%s] %s vs %s" % (
                 p["star"], p["surface_emoji"], p.get("tour_type", "ATP"), p1d, p2d))
-            lines.append("%s %s %s vs %s" % (
-                p["star"], p["surface_emoji"], p1d, p2d))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
                 bnd, p["best_price"], p["model_p"], p["edge"], p["stake"]))
-            parts = []
             adj_parts = []
             if p.get("fat_adj"):      adj_parts.append("體能:%+.1f%%" % p["fat_adj"])
             if p.get("form_adj"):     adj_parts.append("狀態:%+.1f%%" % p["form_adj"])
@@ -2162,23 +2156,19 @@ def run() -> None:
     log.info("=== Tennis Bot v3.2 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
 
     all_matches_raw = fetch_sackmann_matches()
-    # ELO is computed from match history inside load_sackmann_data → compute_elo_from_sackmann
 
     load_sackmann_data(all_matches_raw)
 
-    # Auto-detect retired / injured players from recent Sackmann data
     auto_inj = detect_injuries(all_matches_raw) if all_matches_raw else set()
     _INJURIES.update(auto_inj)
     if auto_inj:
         log.info("Auto-flagged injuries/retirements: %s", auto_inj)
 
-    # Load previous odds snapshot for steam detection
     odds_prev = load_odds_prev()
 
     raw_odds = fetch_odds()
     odds_map = parse_odds(raw_odds)
 
-    # Save current odds for next-run comparison
     save_odds_prev(odds_map)
 
     matches:    List[dict]      = []
@@ -2219,19 +2209,14 @@ def run() -> None:
     picks   = generate_picks(matches, odds_prev=odds_prev)
     history = load_history()
 
-    # Only record Grand Slam picks to Gist, within 40 min before open time
-    if picks and in_recording_window(now_tw):
-        slam_picks = filter_slam_picks(picks)
-        if slam_picks:
-            log.info("Inside recording window — saving %d Grand Slam picks to Gist",
-                     len(slam_picks))
-            record_picks_to_history(slam_picks, history, now_tw)
-            save_history(history)
-        else:
-            log.info("Inside recording window but no Grand Slam picks — skip Gist write")
+    now_utc = datetime.datetime.utcnow()
+    soon_picks = picks_starting_soon(picks, now_utc, hours=2.0)
+    if soon_picks:
+        log.info("Recording %d picks starting within 2h to Gist", len(soon_picks))
+        record_picks_to_history(soon_picks, history, now_tw)
+        save_history(history)
     else:
-        log.info("Outside recording window (TW %s) — skip Gist write",
-                 now_tw.strftime("%H:%M"))
+        log.info("No picks starting within 2h — skip Gist write")
 
     stats   = compute_stats(history)
     write_json(picks, stats, history, game_preds, now_tw)
