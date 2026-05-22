@@ -746,12 +746,12 @@ function renderPick(p){
     (bp1!=null||bp2!=null)?`<div class="ps-row"><span class="ps-lbl">破發轉換率</span><span class="ps-val ${bc1}">${bp1!=null?bp1+'%':'—'}</span><span class="ps-val ${bc2}">${bp2!=null?bp2+'%':'—'}</span></div>`:'',
     (ld1!=null||ld2!=null)?`<div class="ps-row"><span class="ps-lbl">近期負荷</span><span class="ps-val">${fmtLoad(ld1)}</span><span class="ps-val">${fmtLoad(ld2)}</span></div>`:'',
   ].filter(Boolean).join('');
-  const p1last=p.p1?p.p1.split(' ').pop():p.p1;
-  const p2last=p.p2?p.p2.split(' ').pop():p.p2;
+  const p1last=p.p1_cn||(p.p1?p.p1.split(' ').pop():p.p1);
+  const p2last=p.p2_cn||(p.p2?p.p2.split(' ').pop():p.p2);
   const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
   return `<div class="pick tier-${tier}">
     <div class="pick-head">
-      <span class="matchup">${p.p1} <span class="vs">vs</span> ${p.p2}</span>
+      <span class="matchup">${p.p1_cn||p.p1} <span class="vs">vs</span> ${p.p2_cn||p.p2}</span>
       <span class="tag ${surf}">${SURF[surf]||surf}</span>
       <span class="tier-badge">${tierLbl}</span>
       ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)}</span>`:''}
@@ -769,7 +769,7 @@ function renderPick(p){
     </div>
     ${statsBlock}
     <div class="pick-bet">
-      <div><div class="bet-lbl">推薦投注</div><div class="bet-name">${p.bet_on||'—'}</div></div>
+      <div><div class="bet-lbl">推薦投注</div><div class="bet-name">${p.bet_on_cn||p.bet_on||'—'}</div></div>
       <div class="bet-right">
         <span class="price">@ ${p.best_price||'—'}</span>
         <span class="edge-pill">edge ${edgeStr}</span>
