@@ -4,11 +4,11 @@
   "date": "2026-05-22",
   "model_version": "v3.2 — 15-factor: ELO(live)+BO5+SurfaceH2H+1stSrv+BPconv+Cond+KellyTier",
   "stats": {
-    "settled": 0,
-    "wins": 0,
-    "win_rate": 0.0,
-    "roi": 0.0,
-    "pnl": 0.0
+    "settled": 1,
+    "wins": 1,
+    "win_rate": 100.0,
+    "roi": 271.0,
+    "pnl": 322.5
   },
   "picks": [
     {
@@ -78,7 +78,8 @@
       "load2": 0,
       "steam": "",
       "n_books": 33,
-      "eff_min_edge": 14.1
+      "eff_min_edge": 14.1,
+      "tour_type": "ATP"
     },
     {
       "tier": "A",
@@ -147,7 +148,8 @@
       "load2": 0,
       "steam": "",
       "n_books": 28,
-      "eff_min_edge": 12.6
+      "eff_min_edge": 12.6,
+      "tour_type": "ATP"
     },
     {
       "tier": "A",
@@ -216,7 +218,8 @@
       "load2": 0,
       "steam": "",
       "n_books": 35,
-      "eff_min_edge": 15.0
+      "eff_min_edge": 15.0,
+      "tour_type": "ATP"
     },
     {
       "tier": "A",
@@ -285,10 +288,25 @@
       "load2": 0,
       "steam": "",
       "n_books": 26,
-      "eff_min_edge": 12.0
+      "eff_min_edge": 12.0,
+      "tour_type": "ATP"
     }
   ],
-  "recent_history": [],
+  "recent_history": [
+    {
+      "date": "2026-05-22",
+      "p1": "Aliaksandra Sasnovich",
+      "p2": "Marina Bassols Ribera",
+      "bet_on": "Marina Bassols Ribera",
+      "price": 3.71,
+      "stake": 119,
+      "edge": 37.4,
+      "tier": "A",
+      "surface": "clay",
+      "tour": "大滿貫",
+      "result": "W"
+    }
+  ],
   "live_matches": [
     {
       "home": "Roberto Carballes Baena",
