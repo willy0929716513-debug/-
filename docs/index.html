@@ -170,6 +170,8 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .tag.clay{background:rgba(192,57,43,.15);color:#e87461;border:1px solid rgba(192,57,43,.3)}
 .tag.grass{background:rgba(39,174,96,.15);color:#58d68d;border:1px solid rgba(39,174,96,.3)}
 .tag.tour{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+.tag.atp{background:rgba(91,141,238,.12);color:#7aa3f0;border:1px solid rgba(91,141,238,.3)}
+.tag.wta{background:rgba(221,104,180,.12);color:#e080c8;border:1px solid rgba(221,104,180,.3)}
 .tier-badge{
   font-size:.65rem;font-weight:800;letter-spacing:.5px;
   padding:2px 8px;border-radius:4px;text-transform:uppercase;
@@ -751,6 +753,7 @@ function renderPick(p){
   const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
   return `<div class="pick tier-${tier}">
     <div class="pick-head">
+      <span class="tag ${(p.tour_type||'ATP').toLowerCase()}">${p.tour_type||'ATP'}</span>
       <span class="matchup">${p.p1_cn||p.p1} <span class="vs">vs</span> ${p.p2_cn||p.p2}</span>
       <span class="tag ${surf}">${SURF[surf]||surf}</span>
       <span class="tier-badge">${tierLbl}</span>
