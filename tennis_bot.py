@@ -1951,6 +1951,7 @@ def generate_picks(matches: List[dict],
 
 def load_history() -> dict:
     if not GIST_TOKEN or not GIST_ID:
+        log.warning("load_history: GIST_TOKEN or GIST_ID not set")
         return {"bets": []}
     try:
         r = requests.get(
@@ -1958,17 +1959,25 @@ def load_history() -> dict:
             headers={"Authorization": "token %s" % GIST_TOKEN},
             timeout=15,
         )
+        log.info("load_history: HTTP %s", r.status_code)
         r.raise_for_status()
         data = r.json()
     except Exception as e:
-        log.warning("load_history: %s", e)
+        log.warning("load_history: request failed: %s", e)
         return {"bets": []}
-    for fname, fd in data.get("files", {}).items():
+    files = data.get("files", {})
+    log.info("load_history: Gist files = %s", list(files.keys()))
+    for fname, fd in files.items():
         if fname.endswith(".json"):
+            content = fd.get("content", "")
+            log.info("load_history: reading %s (%d chars)", fname, len(content))
             try:
-                return json.loads(fd.get("content", "{}"))
-            except json.JSONDecodeError:
-                pass
+                result = json.loads(content)
+                log.info("load_history: loaded %d bets", len(result.get("bets", [])))
+                return result
+            except json.JSONDecodeError as e:
+                log.warning("load_history: JSON parse error in %s: %s", fname, e)
+    log.warning("load_history: no .json file found in Gist")
     return {"bets": []}
 
 
