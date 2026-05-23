@@ -1990,7 +1990,9 @@ def save_history(hist: dict) -> None:
 
 def picks_starting_soon(picks: List[dict], now_utc: datetime.datetime,
                          hours: float = 2.0) -> List[dict]:
-    """Return picks whose match commence time is within `hours` from now (UTC)."""
+    """Return picks whose match commence time is within `hours` from now (UTC)
+    AND whose match date is today in Taiwan time (UTC+8)."""
+    now_tw_date = (now_utc + datetime.timedelta(hours=8)).date()
     result = []
     for p in picks:
         commence = p.get("commence", "")
@@ -2000,7 +2002,8 @@ def picks_starting_soon(picks: List[dict], now_utc: datetime.datetime,
             mt = datetime.datetime.fromisoformat(commence.replace("Z", "+00:00"))
             mt_naive = mt.replace(tzinfo=None) if mt.tzinfo else mt
             diff_h = (mt_naive - now_utc).total_seconds() / 3600.0
-            if 0.0 <= diff_h <= hours:
+            mt_tw_date = (mt_naive + datetime.timedelta(hours=8)).date()
+            if 0.0 <= diff_h <= hours and mt_tw_date == now_tw_date:
                 result.append(p)
         except Exception:
             pass
