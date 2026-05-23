@@ -132,6 +132,12 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .hist-band-body{overflow-x:auto;white-space:nowrap;padding:10px 12px;display:flex;gap:8px}
 .hist-band-body::-webkit-scrollbar{height:3px}
 .hist-band-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.hist-card{
+  display:inline-flex;flex-direction:column;gap:4px;
+  min-width:130px;max-width:160px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;white-space:normal;vertical-align:top;
+}
 
 /* ─── MAIN GRID ─── */
 .main-grid{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
@@ -155,8 +161,9 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .pick.tier-C{border-left:3px solid var(--border)}
 
 /* pick header */
-.pick-head{padding:12px 14px 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.matchup{font-size:.98rem;font-weight:700;flex:1;min-width:0}
+.pick-head{padding:12px 14px 8px;display:flex;flex-direction:column;gap:7px}
+.pick-head-tags{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.matchup{font-size:1rem;font-weight:700;line-height:1.35}
 .vs{color:var(--muted);font-weight:400;font-size:.85rem}
 .tag{font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:20px}
 .tag.hard{background:rgba(52,152,219,.15);color:#5dade2;border:1px solid rgba(52,152,219,.3)}
@@ -373,13 +380,29 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .action-bar .btn{flex:1;max-width:180px;justify-content:center}
 @media(max-width:600px){
   .stats-bar{grid-template-columns:repeat(2,1fr)}
+  .stat{padding:12px}
+  .stat .num{font-size:1.2rem}
   .pick-metrics{grid-template-columns:repeat(2,1fr)}
   .run-status{display:none}
   .hdr-sep{display:none}
-  .action-bar .btn{font-size:.78rem;padding:7px 8px}
+  .action-bar{padding:10px 12px 6px}
+  .action-bar .btn{font-size:.88rem;padding:10px 16px;max-width:none}
+  .page{padding:14px 10px}
+  .hist-band-body{flex-direction:column;white-space:normal;gap:6px}
+  .hist-card{min-width:unset;max-width:unset;width:100%;flex-direction:row;align-items:center;gap:10px;padding:10px 12px}
+  .hist-card-body{flex:1;min-width:0}
+  .pick-head{padding:10px 12px 6px}
+  .conf-row{padding:2px 12px 8px}
+  .pick-metrics{padding:0 12px 8px;gap:5px}
+  .pstats{margin:0 12px 8px}
+  .pick-bet{padding:8px 12px}
+  .pick-bet .bet-right{gap:6px}
+  .tourn-hd{padding:6px 10px}
 }
 @media(max-width:400px){
-  .ps-head,.ps-row{grid-template-columns:90px 1fr 1fr}
+  .ps-head,.ps-row{grid-template-columns:80px 1fr 1fr}
+  .matchup{font-size:.93rem}
+  .pick-head-tags .tag{font-size:.65rem}
 }
 </style>
 </head>
@@ -729,12 +752,14 @@ function renderPick(p){
   const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
   return `<div class="pick tier-${tier}">
     <div class="pick-head">
-      <span class="tag ${(p.tour_type||'ATP').toLowerCase()}">${p.tour_type||'ATP'}</span>
-      <span class="matchup">${p.p1_cn||p.p1} <span class="vs">vs</span> ${p.p2_cn||p.p2}</span>
-      <span class="tag ${surf}">${SURF[surf]||surf}</span>
-      <span class="tier-badge">${tierLbl}</span>
-      ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)}</span>`:''}
-      ${soonBadge(p.commence)}
+      <div class="pick-head-tags">
+        <span class="tag ${(p.tour_type||'ATP').toLowerCase()}">${p.tour_type||'ATP'}</span>
+        <span class="tag ${surf}">${SURF[surf]||surf}</span>
+        <span class="tier-badge">${tierLbl}</span>
+        ${p.commence?`<span class="match-time">🕐 ${fmtTW(p.commence)}</span>`:''}
+        ${soonBadge(p.commence)}
+      </div>
+      <div class="matchup">${p.p1_cn||p.p1} <span class="vs">vs</span> ${p.p2_cn||p.p2}</div>
     </div>
     <div class="conf-row">
       <div class="conf-meta"><span>模型信心指數</span><strong class="${cc}">${conf} / 100</strong></div>
@@ -810,11 +835,13 @@ async function load(){
       const dte=(b.date||'').slice(5)||'—';
       const bet=b.bet_on||'—',prc=b.price?'@'+b.price:'';
       const edge=b.edge?'+'+b.edge+'%':'';
-      return `<div style="display:inline-flex;flex-direction:column;gap:3px;min-width:130px;max-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;white-space:normal;vertical-align:top">
-        <div style="font-size:.65rem;color:var(--muted)">${dte}</div>
-        <div style="font-size:.78rem;font-weight:700;color:var(--text);line-height:1.3">${bet}</div>
-        <div style="font-size:.72rem;color:var(--muted)">${prc}${edge?' · '+edge:''}</div>
-        <div style="font-size:.9rem;margin-top:2px" class="${cls}">${ico} ${r==='P'?'待結算':r==='W'?'勝':'敗'}</div>
+      return `<div class="hist-card">
+        <div style="font-size:1.1rem;flex-shrink:0">${ico}</div>
+        <div class="hist-card-body">
+          <div style="font-size:.75rem;font-weight:700;color:var(--text);line-height:1.3">${bet}</div>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:2px">${dte}${prc?' · '+prc:''}${edge?' · '+edge:''}</div>
+        </div>
+        <div style="font-size:.75rem;font-weight:700;margin-left:auto;flex-shrink:0" class="${cls}">${r==='P'?'待結算':r==='W'?'勝':'敗'}</div>
       </div>`;
     }).join('');
   } else {
