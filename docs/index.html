@@ -334,6 +334,15 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .match-time{font-size:.65rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:4px;white-space:nowrap;font-family:monospace}
 .soon-badge{font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:4px;background:rgba(245,166,35,.15);color:var(--gold);border:1px solid rgba(245,166,35,.4);animation:blink 1.8s infinite;white-space:nowrap}
 
+/* ─── V4 ADJUSTMENT PILLS ─── */
+.v4-adjs{display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 8px}
+.v4-pill{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.v4-pill.pos{background:rgba(61,214,140,.12);color:var(--green);border:1px solid rgba(61,214,140,.3)}
+.v4-pill.neg{background:rgba(239,84,84,.12);color:var(--red);border:1px solid rgba(239,84,84,.3)}
+.clv-row{padding:0 14px 6px;font-size:.68rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.clv-row span{display:flex;align-items:center;gap:3px}
+.clv-row strong{color:var(--text)}
+
 /* ─── TABS ─── */
 .tab-bar{
   display:flex;align-items:center;gap:4px;
@@ -750,6 +759,17 @@ function renderPick(p){
   const p1last=p.p1_cn||(p.p1?p.p1.split(' ').pop():p.p1);
   const p2last=p.p2_cn||(p.p2?p.p2.split(' ').pop():p.p2);
   const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
+  // V4 adjustment pills (only show when ≥0.5%)
+  const v4map=[
+    {lbl:'風格剋制',val:p.style_adj},
+    {lbl:'場地轉換',val:p.surf_trans_adj},
+    {lbl:'回球深度',val:p.ret_depth_adj},
+    {lbl:'傷病風險',val:p.inj_adj},
+    {lbl:'市場偏差',val:p.public_bias_adj},
+  ].filter(e=>e.val!=null&&Math.abs(e.val)>=0.5);
+  const v4block=v4map.length?`<div class="v4-adjs">${v4map.map(e=>`<span class="v4-pill ${e.val>0?'pos':'neg'}">${e.lbl} ${e.val>0?'+':''}${e.val.toFixed(1)}%</span>`).join('')}</div>`:'';
+  // CLV reference row
+  const clvRow=p.opening_dv_p!=null?`<div class="clv-row"><span>開盤隱含 <strong>${p.opening_dv_p}%</strong></span><span>模型 <strong>${p.model_p!=null?p.model_p+'%':'—'}</strong></span><span style="color:var(--muted);font-size:.62rem">CLV = 實際閉盤對比</span></div>`:'';
   return `<div class="pick tier-${tier}">
     <div class="pick-head">
       <div class="pick-head-tags">
@@ -773,6 +793,8 @@ function renderPick(p){
       <div class="metric"><div class="m-lbl">信心評分</div><div class="m-val ${cc}">${conf}<span style="font-size:.6rem;color:var(--muted);font-weight:400">/100</span></div></div>
     </div>
     ${statsBlock}
+    ${v4block}
+    ${clvRow}
     <div class="pick-bet">
       <div><div class="bet-lbl">推薦投注</div><div class="bet-name">${p.bet_on_cn||p.bet_on||'—'}<span style="font-size:.72rem;font-weight:400;color:var(--muted);margin-left:6px">${p.bet_on_cn&&p.bet_on_cn!==p.bet_on?p.bet_on:''}</span></div></div>
       <div class="bet-right">
