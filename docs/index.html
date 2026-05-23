@@ -343,6 +343,18 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .clv-row span{display:flex;align-items:center;gap:3px}
 .clv-row strong{color:var(--text)}
 
+/* ─── DEFENSIVE STATS COLLAPSIBLE ─── */
+.def-stats{padding:0 14px 10px;border:none}
+.def-stats summary{
+  font-size:.7rem;color:var(--muted);cursor:pointer;
+  padding:4px 0;list-style:none;display:flex;align-items:center;gap:5px;
+  user-select:none;
+}
+.def-stats summary::-webkit-details-marker{display:none}
+.def-stats summary::before{content:'▶';font-size:.55rem;transition:.15s;margin-right:2px}
+.def-stats[open] summary::before{content:'▼'}
+.def-stats-body{margin-top:6px;background:var(--surface);border-radius:8px;overflow:hidden}
+
 /* ─── V4 EXPLANATION SECTION ─── */
 .v4-explain{padding:0 14px 10px;border:none}
 .v4-explain summary{
@@ -775,7 +787,15 @@ function renderPick(p){
   ].filter(Boolean).join('');
   const p1last=p.p1_cn||(p.p1?p.p1.split(' ').pop():p.p1);
   const p2last=p.p2_cn||(p.p2?p.p2.split(' ').pop():p.p2);
-  const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>數據對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
+  const statsBlock=statsRows?`<div class="pstats"><div class="ps-head"><span>進攻對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${statsRows}</div>`:'';
+  // Defensive stats collapsible
+  const bs1=p.bp_save1, bs2=p.bp_save2, df1=p.df_rate1, df2=p.df_rate2;
+  const [bsc1,bsc2]=cmp(bs1,bs2,true), [dfc1,dfc2]=cmp(df1,df2,false);
+  const defRows=[
+    (bs1!=null||bs2!=null)?`<div class="ps-row"><span class="ps-lbl">破發保發率</span><span class="ps-val ${bsc1}">${bs1!=null?bs1+'%':'—'}</span><span class="ps-val ${bsc2}">${bs2!=null?bs2+'%':'—'}</span></div>`:'',
+    (df1!=null||df2!=null)?`<div class="ps-row"><span class="ps-lbl">雙誤率</span><span class="ps-val ${dfc1}">${df1!=null?df1+'%':'—'}</span><span class="ps-val ${dfc2}">${df2!=null?df2+'%':'—'}</span></div>`:'',
+  ].filter(Boolean).join('');
+  const defBlock=defRows?`<details class="def-stats"><summary>🛡 防守數據</summary><div class="def-stats-body"><div class="ps-head"><span>防守對比</span><span title="${p.p1}">${p1last}</span><span title="${p.p2}">${p2last}</span></div>${defRows}</div></details>`:'';
   // V4 adjustment pills (only show when ≥0.5%)
   const v4map=[
     {lbl:'風格剋制',val:p.style_adj},
@@ -819,6 +839,7 @@ function renderPick(p){
       <div class="metric"><div class="m-lbl">信心評分</div><div class="m-val ${cc}">${conf}<span style="font-size:.6rem;color:var(--muted);font-weight:400">/100</span></div></div>
     </div>
     ${statsBlock}
+    ${defBlock}
     ${v4block}
     ${v4expBlock}
     ${clvRow}
@@ -867,7 +888,7 @@ async function load(){
       if(!dayMap[dl.key].tMap[tKey]) dayMap[dl.key].tMap[tKey]={tKey,surface:p.surface||'hard',tour:p.tour||'',items:[],p};
       dayMap[dl.key].tMap[tKey].items.push(p);
     });
-    q('picks').innerHTML=Object.values(dayMap).map(dg=>{
+    q('picks').innerHTML=Object.entries(dayMap).sort(([a],[b])=>a.localeCompare(b)).map(([,dg])=>{
       const tournBlocks=Object.values(dg.tMap).map(tg=>{
         const name=fmtTournName(tg.p),icon=surfIcon[tg.surface]||'⚪',sfCls='surf-'+(tg.surface||'hard'),cnt=tg.items.length;
         return `<div class="tourn-group"><div class="tourn-hd ${sfCls}"><span class="t-icon">${icon}</span><span class="t-name">${name}</span><span class="t-level">${tg.tour}</span><span class="t-count">${cnt} 場</span></div>${tg.items.map(renderPick).join('')}</div>`;
