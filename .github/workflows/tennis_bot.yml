@@ -37,9 +37,13 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp docs/picks_latest.json /tmp/picks_new.json
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/picks_new.json docs/picks_latest.json
           git add docs/picks_latest.json
           git diff --cached --quiet || git commit -m "chore: update tennis picks [skip ci]"
-          git push
+          git push origin HEAD:main
 
       - name: Sync picks to main (GitHub Pages)
         env:
