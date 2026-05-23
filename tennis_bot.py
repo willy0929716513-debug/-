@@ -508,6 +508,81 @@ TOUR_META: Dict[str, dict] = {
     "challenger":  {"name": "挑戰賽",    "best_of": 3},
 }
 
+# ─── v4.0 PLAYSTYLE MATRIX ───────────────────────────────────────────────────
+PLAYSTYLE: Dict[str, str] = {
+    # ATP
+    "djokovic": "counter_puncher", "alcaraz": "all_court",
+    "sinner": "aggressive_baseliner", "medvedev": "defensive_baseliner",
+    "zverev": "aggressive_baseliner", "rublev": "aggressive_baseliner",
+    "tsitsipas": "all_court", "fritz": "big_server",
+    "de_minaur": "counter_puncher", "hurkacz": "big_server",
+    "dimitrov": "all_court", "paul": "aggressive_baseliner",
+    "auger_aliassime": "big_server", "musetti": "all_court",
+    "tiafoe": "aggressive_baseliner", "berrettini": "big_server",
+    "ruud": "defensive_baseliner", "draper": "aggressive_baseliner",
+    "shelton": "big_server", "khachanov": "aggressive_baseliner",
+    "bublik": "big_server", "humbert": "aggressive_baseliner",
+    "jarry": "big_server", "cobolli": "aggressive_baseliner",
+    # WTA
+    "swiatek": "aggressive_baseliner", "sabalenka": "aggressive_baseliner",
+    "gauff": "all_court", "rybakina": "big_server",
+    "pegula": "defensive_baseliner", "keys": "aggressive_baseliner",
+    "zheng": "aggressive_baseliner", "paolini": "counter_puncher",
+    "navarro": "all_court", "krejcikova": "all_court",
+    "sakkari": "aggressive_baseliner", "kasatkina": "all_court",
+    "kvitova": "big_server", "haddad_maia": "aggressive_baseliner",
+    "kostyuk": "aggressive_baseliner", "bencic": "all_court",
+    "collins": "aggressive_baseliner",
+}
+
+STYLE_MATCHUP_ADJ: Dict[Tuple[str, str], float] = {
+    ("big_server",           "counter_puncher"):      +0.018,
+    ("big_server",           "defensive_baseliner"):  +0.022,
+    ("big_server",           "aggressive_baseliner"): +0.010,
+    ("aggressive_baseliner", "defensive_baseliner"):  +0.015,
+    ("aggressive_baseliner", "counter_puncher"):      -0.010,
+    ("counter_puncher",      "aggressive_baseliner"): +0.010,
+    ("counter_puncher",      "big_server"):           -0.018,
+    ("counter_puncher",      "defensive_baseliner"):  +0.005,
+    ("all_court",            "big_server"):           +0.005,
+    ("all_court",            "defensive_baseliner"):  +0.008,
+    ("all_court",            "counter_puncher"):      +0.003,
+    ("defensive_baseliner",  "aggressive_baseliner"): -0.015,
+    ("defensive_baseliner",  "big_server"):           -0.022,
+}
+
+STYLE_SURFACE_MOD: Dict[str, float] = {
+    "hard": 1.0, "clay": 1.3, "grass": 1.4, "carpet": 1.1,
+}
+
+# Dynamic model weights [elo, markov, hb, adv] per surface
+DYNAMIC_WEIGHTS: Dict[str, Dict[str, float]] = {
+    "hard":   {"elo": 0.25, "markov": 0.25, "hb": 0.20, "adv": 0.30},
+    "clay":   {"elo": 0.18, "markov": 0.22, "hb": 0.25, "adv": 0.35},
+    "grass":  {"elo": 0.30, "markov": 0.28, "hb": 0.22, "adv": 0.20},
+    "carpet": {"elo": 0.28, "markov": 0.27, "hb": 0.22, "adv": 0.23},
+}
+# WTA: return/rally factor boosted
+WTA_WEIGHT_ADJ: Dict[str, float] = {
+    "elo": -0.03, "markov": -0.02, "hb": +0.02, "adv": +0.03,
+}
+
+SURFACE_TRANSITION_PENALTY: Dict[Tuple[str, str], float] = {
+    ("clay",  "grass"):  -0.020,
+    ("hard",  "grass"):  -0.012,
+    ("grass", "clay"):   -0.010,
+    ("grass", "hard"):   -0.006,
+    ("clay",  "hard"):   -0.005,
+    ("hard",  "clay"):   -0.008,
+}
+SURFACE_TRANSITION_WINDOW = 21  # days
+
+PUBLIC_BIAS_THRESHOLD = 0.08
+PUBLIC_BIAS_FADE      = 0.025
+
+INJURY_SERVE_DROP_THRESH = 0.05
+INJURY_STREAK_PENALTY    = -0.015
+
 # ─────────────────────────────────────────────────────────────────────────────
 # RUNTIME CACHES
 # ─────────────────────────────────────────────────────────────────────────────
@@ -916,6 +991,85 @@ def conditioning_adj(p1_key: str, p2_key: str) -> float:
     return max(-0.04, min(0.04, penalty(m2) - penalty(m1)))
 
 
+def _dynamic_weights(surface: str, is_wta: bool) -> Dict[str, float]:
+    w = dict(DYNAMIC_WEIGHTS.get(surface, DYNAMIC_WEIGHTS["hard"]))
+    if is_wta:
+        for k, adj in WTA_WEIGHT_ADJ.items():
+            w[k] = round(w.get(k, 0) + adj, 4)
+    # 正規化使總和 = 1.0
+    total = sum(w.values())
+    return {k: v / total for k, v in w.items()}
+
+
+def playstyle_adj(p1_key: str, p2_key: str, surface: str) -> float:
+    s1 = PLAYSTYLE.get(p1_key, "all_court")
+    s2 = PLAYSTYLE.get(p2_key, "all_court")
+    if s1 == s2:
+        return 0.0
+    base = STYLE_MATCHUP_ADJ.get((s1, s2), 0.0)
+    if base == 0.0:
+        base = -STYLE_MATCHUP_ADJ.get((s2, s1), 0.0)
+    mod = STYLE_SURFACE_MOD.get(surface, 1.0)
+    return max(-0.035, min(0.035, base * mod))
+
+
+def surface_transition_adj(p1_key: str, p2_key: str,
+                            prof1: dict, prof2: dict,
+                            current_surface: str) -> float:
+    adj = 0.0
+    for pkey, prof, sign in ((p1_key, prof1, +1), (p2_key, prof2, -1)):
+        last_surf = prof.get("last_surface")
+        last_days = prof.get("last_surf_days", 999)
+        if not last_surf or last_surf == current_surface:
+            continue
+        if last_days > SURFACE_TRANSITION_WINDOW:
+            continue
+        pen = SURFACE_TRANSITION_PENALTY.get((last_surf, current_surface), 0.0)
+        adj += sign * pen
+    return max(-0.030, min(0.030, adj))
+
+
+def return_depth_adj(p1_key: str, p2_key: str, surface: str, is_wta: bool) -> float:
+    p1 = _SACKMANN_PROFILES.get(p1_key, {})
+    p2 = _SACKMANN_PROFILES.get(p2_key, {})
+    ss1 = p1.get("second_serve_win")
+    ss2 = p2.get("second_serve_win")
+    if ss1 is None or ss2 is None:
+        return 0.0
+    scale = 0.30 if is_wta else 0.20
+    if surface == "clay":
+        scale *= 1.2
+    return max(-0.030, min(0.030, (ss2 - ss1) * scale))
+
+
+def injury_risk_adj(p1_key: str, p2_key: str) -> float:
+    adj = 0.0
+    all_db = {**ATP_STATS, **WTA_STATS}
+    for pkey, sign in ((p1_key, +1), (p2_key, -1)):
+        prof = _SACKMANN_PROFILES.get(pkey, {})
+        if pkey in _INJURIES:
+            adj += sign * (-0.030)
+            continue
+        # form collapse
+        if prof.get("win_streak", 0) <= -3:
+            adj += sign * INJURY_STREAK_PENALTY
+        # serve efficiency drop vs season average
+        db_sv = all_db.get(pkey, {}).get("hard", {}).get("svpt_won")
+        recent_sv = prof.get("svpt_won")
+        if db_sv and recent_sv and (db_sv - recent_sv) > INJURY_SERVE_DROP_THRESH:
+            adj += sign * (-0.020)
+    return max(-0.040, min(0.040, adj))
+
+
+def public_bias_adj_fn(model_home, dv_home, model_away, dv_away):
+    fade = 0.0
+    if dv_home - model_home > PUBLIC_BIAS_THRESHOLD:
+        fade -= PUBLIC_BIAS_FADE
+    if dv_away - model_away > PUBLIC_BIAS_THRESHOLD:
+        fade += PUBLIC_BIAS_FADE
+    return fade
+
+
 def compute_elo_from_sackmann(all_matches: List[dict]) -> None:
     """
     Derive surface-specific ELO from Sackmann match history and store in _LIVE_ELO.
@@ -1279,6 +1433,21 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         return None
 
     player_rows.sort(key=lambda x: x[0].get("tourney_date", "0"), reverse=True)
+
+    last_surface  = "hard"
+    last_surf_days = 999
+    if player_rows:
+        last_row = player_rows[0][0]
+        ls_raw = (last_row.get("surface") or "hard").lower()
+        last_surface = ls_raw if ls_raw in ("hard", "clay", "grass") else "hard"
+        ls_date = last_row.get("tourney_date", "")
+        if len(ls_date) == 8:
+            try:
+                ld2 = datetime.datetime(int(ls_date[:4]), int(ls_date[4:6]), int(ls_date[6:8]))
+                last_surf_days = max(0, (datetime.datetime.utcnow() - ld2).days)
+            except ValueError:
+                pass
+
     recent = player_rows[:n]
 
     sv_wons, rt_wons, results, mins_list, sets_list = [], [], [], [], []
@@ -1445,6 +1614,8 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         "second_serve_win":   round(sum(ss_win_list) / len(ss_win_list), 4) if ss_win_list  else None,
         "bp_conv_pct":        round(bp_conv_num / bp_conv_den, 4) if bp_conv_den >= 5 else None,
         "matches_last_14d":   matches_14d,
+        "last_surface":       last_surface,
+        "last_surf_days":     last_surf_days,
     }
 
 
@@ -1548,7 +1719,8 @@ def predict(p1_key: str, p2_key: str, surface: str,
         s2["svpt_won"] * (1.0 - df2 * 1.5) + surf_adj + cs_adj)))
     adv_p1 = hold_break_win_prob(hold1_df, break1, hold2_df, break2)
 
-    raw_prob = 0.25 * elo_p1 + 0.25 * markov_p1 + 0.20 * hb_p1 + 0.30 * adv_p1
+    w = _dynamic_weights(surface, is_wta)
+    raw_prob = w["elo"] * elo_p1 + w["markov"] * markov_p1 + w["hb"] * hb_p1 + w["adv"] * adv_p1
 
     fat1 = fatigue_score(
         prof1.get("days_rest", 3),
@@ -1577,6 +1749,10 @@ def predict(p1_key: str, p2_key: str, surface: str,
     fs_val      = first_serve_adj(p1_key, p2_key)
     bp_atk_val  = bp_attack_adj(p1_key, p2_key)
     cond_val    = conditioning_adj(p1_key, p2_key)
+    style_val      = playstyle_adj(p1_key, p2_key, surface)
+    surf_trans_val = surface_transition_adj(p1_key, p2_key, prof1, prof2, surface)
+    ret_depth_val  = return_depth_adj(p1_key, p2_key, surface, is_wta)
+    inj_val        = injury_risk_adj(p1_key, p2_key)
 
     alt_adj    = altitude_adj(tournament, surface)
     # altitude shifts serve probability directly (same direction for both)
@@ -1589,6 +1765,7 @@ def predict(p1_key: str, p2_key: str, surface: str,
         raw_prob + fat_adj_val + form_adj_val + h2h_val + clutch_val
         + df_val + bh_val + streak_val + wind_val
         + bo5_val + fs_val + bp_atk_val + cond_val
+        + style_val + surf_trans_val + ret_depth_val + inj_val
     ))
 
     exp_g = expected_total_games(p1_sv, p2_sv, best_of=best_of)
@@ -1653,6 +1830,11 @@ def predict(p1_key: str, p2_key: str, surface: str,
         "load1":           prof1.get("matches_last_14d", 0),
         "load2":           prof2.get("matches_last_14d", 0),
         "is_wta":          is_wta,
+        "style_adj":        round(style_val, 4),
+        "surf_trans_adj":   round(surf_trans_val, 4),
+        "ret_depth_adj":    round(ret_depth_val, 4),
+        "inj_adj":          round(inj_val, 4),
+        "model_weights":    {k: round(v, 3) for k, v in w.items()},
     }
 
 
@@ -1820,6 +2002,12 @@ def generate_picks(matches: List[dict],
         blend_p1 = max(0.05, min(0.95, blend_p1 + steam_adj))
         blend_p2 = 1.0 - blend_p1
 
+        # Market public bias fade
+        bias_adj = public_bias_adj_fn(blend_p1, odds_info["dv_p_home"],
+                                      blend_p2, odds_info["dv_p_away"])
+        blend_p1 = max(0.05, min(0.95, blend_p1 + bias_adj))
+        blend_p2 = 1.0 - blend_p1
+
         edge1 = blend_p1 - dv_p1
         edge2 = blend_p2 - dv_p2
 
@@ -1912,6 +2100,7 @@ def generate_picks(matches: List[dict],
             "tb_win2":        round(pred.get("tb_win2", 0.5) * 100, 1),
             "bp_save1":       round(pred.get("bp_save1", 0.6) * 100, 1),
             "bp_save2":       round(pred.get("bp_save2", 0.6) * 100, 1),
+            "bp_save2":       round(pred.get("bp_save2", 0.6) * 100, 1),
             "df_rate1":       round(pred.get("df_rate1", 0.04) * 100, 2),
             "df_rate2":       round(pred.get("df_rate2", 0.04) * 100, 2),
             "ace_rate1":      round(pred.get("ace_rate1", 0.06) * 100, 2),
@@ -1936,6 +2125,12 @@ def generate_picks(matches: List[dict],
             "steam":          steam_label,
             "n_books":        n_books,
             "eff_min_edge":   round(eff_min_edge * 100, 1),
+            "style_adj":       round(pred.get("style_adj", 0.0) * 100, 2),
+            "surf_trans_adj":  round(pred.get("surf_trans_adj", 0.0) * 100, 2),
+            "ret_depth_adj":   round(pred.get("ret_depth_adj", 0.0) * 100, 2),
+            "inj_adj":         round(pred.get("inj_adj", 0.0) * 100, 2),
+            "public_bias_adj": round(bias_adj * 100, 2),
+            "opening_dv_p":    round(dv_p * 100, 1),  # CLV tracking
         })
         log.info("  PICK %s %s vs %s -> %s @%.2f model=%.1f%% edge=+%.1f%% $%.0f",
                  star, odds_info["home"], odds_info["away"],
@@ -1951,7 +2146,6 @@ def generate_picks(matches: List[dict],
 
 def load_history() -> dict:
     if not GIST_TOKEN or not GIST_ID:
-        log.warning("load_history: GIST_TOKEN or GIST_ID not set")
         return {"bets": []}
     try:
         r = requests.get(
@@ -1959,25 +2153,17 @@ def load_history() -> dict:
             headers={"Authorization": "token %s" % GIST_TOKEN},
             timeout=15,
         )
-        log.info("load_history: HTTP %s", r.status_code)
         r.raise_for_status()
         data = r.json()
     except Exception as e:
-        log.warning("load_history: request failed: %s", e)
+        log.warning("load_history: %s", e)
         return {"bets": []}
-    files = data.get("files", {})
-    log.info("load_history: Gist files = %s", list(files.keys()))
-    for fname, fd in files.items():
+    for fname, fd in data.get("files", {}).items():
         if fname.endswith(".json"):
-            content = fd.get("content", "")
-            log.info("load_history: reading %s (%d chars)", fname, len(content))
             try:
-                result = json.loads(content)
-                log.info("load_history: loaded %d bets", len(result.get("bets", [])))
-                return result
-            except json.JSONDecodeError as e:
-                log.warning("load_history: JSON parse error in %s: %s", fname, e)
-    log.warning("load_history: no .json file found in Gist")
+                return json.loads(fd.get("content", "{}"))
+            except json.JSONDecodeError:
+                pass
     return {"bets": []}
 
 
@@ -1996,25 +2182,26 @@ def save_history(hist: dict) -> None:
         log.warning("save_history: %s", e)
 
 
-# Regional opening times (TW, UTC+8) — record window = 40 min before each
-# AUS/Asia: 07:00, Europe: 17:00, Americas: 23:00
-_RECORD_WINDOWS: List[Tuple[int, int]] = [
-    (6, 20),   # 06:20–07:00 → AUS/Asia opens 07:00
-    (16, 20),  # 16:20–17:00 → Europe opens 17:00
-    (22, 20),  # 22:20–23:00 → Americas opens 23:00
-]
-
-
-def in_recording_window(now_tw: datetime.datetime) -> bool:
-    """Return True if current TW time is within 40 min before a regional open."""
-    h, m = now_tw.hour, now_tw.minute
-    cur = h * 60 + m
-    for wh, wm in _RECORD_WINDOWS:
-        win_start = wh * 60 + wm
-        win_end   = win_start + 40
-        if win_start <= cur < win_end:
-            return True
-    return False
+def picks_starting_soon(picks: List[dict], now_utc: datetime.datetime,
+                         hours: float = 2.0) -> List[dict]:
+    """Return picks whose match commence time is within `hours` from now (UTC)
+    AND whose match date is today in Taiwan time (UTC+8)."""
+    now_tw_date = (now_utc + datetime.timedelta(hours=8)).date()
+    result = []
+    for p in picks:
+        commence = p.get("commence", "")
+        if not commence:
+            continue
+        try:
+            mt = datetime.datetime.fromisoformat(commence.replace("Z", "+00:00"))
+            mt_naive = mt.replace(tzinfo=None) if mt.tzinfo else mt
+            diff_h = (mt_naive - now_utc).total_seconds() / 3600.0
+            mt_tw_date = (mt_naive + datetime.timedelta(hours=8)).date()
+            if 0.0 <= diff_h <= hours and mt_tw_date == now_tw_date:
+                result.append(p)
+        except Exception:
+            pass
+    return result
 
 
 _SLAM_KEYS = {"french_open", "wimbledon", "us_open", "australian_open"}
@@ -2025,7 +2212,6 @@ def filter_slam_picks(picks: List[dict]) -> List[dict]:
     slam_picks = [p for p in picks if p.get("tournament", "") in _SLAM_KEYS]
     if not slam_picks:
         return []
-    # Determine which slam is dominant (most picks) and keep only that slam
     from collections import Counter
     dominant = Counter(p["tournament"] for p in slam_picks).most_common(1)[0][0]
     return [p for p in slam_picks if p["tournament"] == dominant]
@@ -2036,7 +2222,6 @@ def record_picks_to_history(picks: List[dict], hist: dict,
     """Append today's picks as pending bets if not already recorded."""
     bets   = hist.setdefault("bets", [])
     today  = now_tw.strftime("%Y-%m-%d")
-    # Deduplicate: skip picks already recorded for same matchup today
     existing = {
         (b["p1"], b["p2"], b["date"])
         for b in bets
@@ -2048,17 +2233,19 @@ def record_picks_to_history(picks: List[dict], hist: dict,
         if key in existing:
             continue
         bets.append({
-            "date":     today,
-            "p1":       p["p1"],
-            "p2":       p["p2"],
-            "bet_on":   p["bet_on"],
-            "price":    p["best_price"],
-            "stake":    p["stake"],
-            "edge":     p["edge"],
-            "tier":     p["tier"],
-            "surface":  p["surface"],
-            "tour":     p["tour"],
-            "result":   "P",   # pending — update manually or via result bot
+            "date":         today,
+            "p1":           p["p1"],
+            "p2":           p["p2"],
+            "bet_on":       p["bet_on"],
+            "price":        p["best_price"],
+            "stake":        p["stake"],
+            "edge":         p["edge"],
+            "tier":         p["tier"],
+            "surface":      p["surface"],
+            "tour":         p["tour"],
+            "result":       "P",
+            "opening_dv_p": p.get("opening_dv_p"),
+            "model_p":      p.get("model_p"),
         })
         existing.add(key)
         added += 1
@@ -2100,10 +2287,11 @@ def send_ntfy(title: str, message: str) -> None:
         log.warning("ntfy: %s", e)
 
 
-def send_discord(picks: List[dict], stats: dict) -> None:
+def send_discord(picks: List[dict], stats: dict, is_recording: bool = False) -> None:
     if not DISCORD_HOOK:
         return
     now   = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+    label  = "🟢 紀錄時間" if is_recording else "⚪ 非紀錄時間"
     lines = ["**\U0001f3be ATP/WTA 每日預測 — %s**" % now.strftime("%Y-%m-%d %H:%M"), "```"]
     if not picks:
         lines.append("今日無符合條件的推薦")
@@ -2114,11 +2302,8 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             bnd = p.get("bet_on_cn") or p["bet_on"]
             lines.append("%s %s [%s] %s vs %s" % (
                 p["star"], p["surface_emoji"], p.get("tour_type", "ATP"), p1d, p2d))
-            lines.append("%s %s %s vs %s" % (
-                p["star"], p["surface_emoji"], p1d, p2d))
             lines.append("  推薦: %s @%.2f  模型:%.1f%%  edge:+%.1f%%  $%.0f" % (
                 bnd, p["best_price"], p["model_p"], p["edge"], p["stake"]))
-            parts = []
             adj_parts = []
             if p.get("fat_adj"):      adj_parts.append("體能:%+.1f%%" % p["fat_adj"])
             if p.get("form_adj"):     adj_parts.append("狀態:%+.1f%%" % p["form_adj"])
@@ -2131,6 +2316,10 @@ def send_discord(picks: List[dict], stats: dict) -> None:
             if p.get("cond_adj"):     adj_parts.append("負荷:%+.1f%%" % p["cond_adj"])
             if p.get("wind_kmh", 0) > 15: adj_parts.append("風:%.0fkm/h" % p["wind_kmh"])
             if p.get("steam"):        adj_parts.append("💰%s" % p["steam"].replace("_"," "))
+            if p.get("style_adj"):     adj_parts.append("風格:%+.1f%%" % p["style_adj"])
+            if p.get("surf_trans_adj"):adj_parts.append("場轉:%+.1f%%" % p["surf_trans_adj"])
+            if p.get("inj_adj"):       adj_parts.append("傷病:%+.1f%%" % p["inj_adj"])
+            if p.get("public_bias_adj"):adj_parts.append("市偏:%+.1f%%" % p["public_bias_adj"])
             if adj_parts:
                 lines.append("  " + "  ".join(adj_parts))
             lines.append("  一發:%.0f%%/%.0f%%  破發轉換:%.0f%%/%.0f%%  負荷:%d/%d場" % (
@@ -2179,23 +2368,19 @@ def run() -> None:
     log.info("=== Tennis Bot v3.2 start %s ===", now_tw.strftime("%Y-%m-%d %H:%M"))
 
     all_matches_raw = fetch_sackmann_matches()
-    # ELO is computed from match history inside load_sackmann_data → compute_elo_from_sackmann
 
     load_sackmann_data(all_matches_raw)
 
-    # Auto-detect retired / injured players from recent Sackmann data
     auto_inj = detect_injuries(all_matches_raw) if all_matches_raw else set()
     _INJURIES.update(auto_inj)
     if auto_inj:
         log.info("Auto-flagged injuries/retirements: %s", auto_inj)
 
-    # Load previous odds snapshot for steam detection
     odds_prev = load_odds_prev()
 
     raw_odds = fetch_odds()
     odds_map = parse_odds(raw_odds)
 
-    # Save current odds for next-run comparison
     save_odds_prev(odds_map)
 
     matches:    List[dict]      = []
@@ -2236,19 +2421,14 @@ def run() -> None:
     picks   = generate_picks(matches, odds_prev=odds_prev)
     history = load_history()
 
-    # Only record Grand Slam picks to Gist, within 40 min before open time
-    if picks and in_recording_window(now_tw):
-        slam_picks = filter_slam_picks(picks)
-        if slam_picks:
-            log.info("Inside recording window — saving %d Grand Slam picks to Gist",
-                     len(slam_picks))
-            record_picks_to_history(slam_picks, history, now_tw)
-            save_history(history)
-        else:
-            log.info("Inside recording window but no Grand Slam picks — skip Gist write")
+    now_utc = datetime.datetime.utcnow()
+    soon_picks = picks_starting_soon(picks, now_utc, hours=2.0)
+    if soon_picks:
+        log.info("Recording %d picks starting within 2h to Gist", len(soon_picks))
+        record_picks_to_history(soon_picks, history, now_tw)
+        save_history(history)
     else:
-        log.info("Outside recording window (TW %s) — skip Gist write",
-                 now_tw.strftime("%H:%M"))
+        log.info("No picks starting within 2h — skip Gist write")
 
     stats   = compute_stats(history)
     write_json(picks, stats, history, game_preds, now_tw)
@@ -2261,7 +2441,7 @@ def run() -> None:
                 p["p1"], p["p2"], p["bet_on"], p["best_price"], p["edge"]
             ) for p in picks),
         )
-    send_discord(picks, stats)
+    send_discord(picks, stats, bool(soon_picks))
     log.info("=== Done — %d picks ===", len(picks))
 
 
