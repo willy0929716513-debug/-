@@ -343,6 +343,23 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 .clv-row span{display:flex;align-items:center;gap:3px}
 .clv-row strong{color:var(--text)}
 
+/* ─── V4 EXPLANATION SECTION ─── */
+.v4-explain{padding:0 14px 10px;border:none}
+.v4-explain summary{
+  font-size:.7rem;color:var(--muted);cursor:pointer;
+  padding:4px 0;list-style:none;display:flex;align-items:center;gap:5px;
+  user-select:none;
+}
+.v4-explain summary::-webkit-details-marker{display:none}
+.v4-explain summary::before{content:'▶';font-size:.55rem;transition:.15s;margin-right:2px}
+.v4-explain[open] summary::before{content:'▼'}
+.v4-explain-body{margin-top:8px;display:flex;flex-direction:column;gap:7px}
+.v4-exp-row{display:flex;align-items:center;gap:8px;font-size:.76rem}
+.v4-exp-pill{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.v4-exp-pill.pos{background:rgba(61,214,140,.12);color:var(--green);border:1px solid rgba(61,214,140,.3)}
+.v4-exp-pill.neg{background:rgba(239,84,84,.12);color:var(--red);border:1px solid rgba(239,84,84,.3)}
+.v4-exp-desc{color:var(--muted);line-height:1.4}
+
 /* ─── TABS ─── */
 .tab-bar{
   display:flex;align-items:center;gap:4px;
@@ -420,7 +437,7 @@ header h1{font-size:1.1rem;font-weight:700;letter-spacing:-.3px}
 <!-- HEADER -->
 <header>
   <span style="font-size:1.4rem">🎾</span>
-  <h1>Tennis Predictor <small style="font-size:.65em;color:var(--muted);font-weight:400">v3</small></h1>
+  <h1>Tennis Predictor <small style="font-size:.65em;color:var(--muted);font-weight:400">v4</small></h1>
   <div class="header-right">
     <div class="run-status" id="run-status-block" title="點此查看上次執行狀態">
       <div class="dot" id="st-dot"></div>
@@ -770,6 +787,15 @@ function renderPick(p){
   const v4block=v4map.length?`<div class="v4-adjs">${v4map.map(e=>`<span class="v4-pill ${e.val>0?'pos':'neg'}">${e.lbl} ${e.val>0?'+':''}${e.val.toFixed(1)}%</span>`).join('')}</div>`:'';
   // CLV reference row
   const clvRow=p.opening_dv_p!=null?`<div class="clv-row"><span>開盤隱含 <strong>${p.opening_dv_p}%</strong></span><span>模型 <strong>${p.model_p!=null?p.model_p+'%':'—'}</strong></span><span style="color:var(--muted);font-size:.62rem">CLV = 實際閉盤對比</span></div>`:'';
+  // V4 collapsible explanation
+  const v4explain=[
+    {lbl:'風格剋制',val:p.style_adj,      posDesc:`${p1last} 打法剋制 ${p2last}`,                  negDesc:`${p2last} 打法剋制 ${p1last}`},
+    {lbl:'場地轉換',val:p.surf_trans_adj,  posDesc:`${p1last} 場地適應較佳`,                        negDesc:`${p2last} 場地適應較佳`},
+    {lbl:'回球深度',val:p.ret_depth_adj,   posDesc:`${p1last} 回球深度優勢`,                        negDesc:`${p2last} 回球深度優勢`},
+    {lbl:'傷病風險',val:p.inj_adj,         posDesc:`${p2last} 有傷病風險`,                          negDesc:`${p1last} 有傷病風險`},
+    {lbl:'市場偏差',val:p.public_bias_adj, posDesc:`市場高估 ${p2last}，${p1last} 具潛在價值`,     negDesc:`市場高估 ${p1last}，${p2last} 具潛在價值`},
+  ].filter(e=>e.val!=null&&Math.abs(e.val)>=0.5);
+  const v4expBlock=v4explain.length?`<details class="v4-explain"><summary>📊 調整說明（${v4explain.length} 項因子）</summary><div class="v4-explain-body">${v4explain.map(e=>{const cls=e.val>0?'pos':'neg';const desc=e.val>0?e.posDesc:e.negDesc;return`<div class="v4-exp-row"><span class="v4-exp-pill ${cls}">${e.lbl} ${e.val>0?'+':''}${e.val.toFixed(1)}%</span><span class="v4-exp-desc">${desc}</span></div>`;}).join('')}</div></details>`:'';
   return `<div class="pick tier-${tier}">
     <div class="pick-head">
       <div class="pick-head-tags">
@@ -794,6 +820,7 @@ function renderPick(p){
     </div>
     ${statsBlock}
     ${v4block}
+    ${v4expBlock}
     ${clvRow}
     <div class="pick-bet">
       <div><div class="bet-lbl">推薦投注</div><div class="bet-name">${p.bet_on_cn||p.bet_on||'—'}<span style="font-size:.72rem;font-weight:400;color:var(--muted);margin-left:6px">${p.bet_on_cn&&p.bet_on_cn!==p.bet_on?p.bet_on:''}</span></div></div>
