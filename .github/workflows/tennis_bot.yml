@@ -2,6 +2,11 @@ name: Tennis Bot
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode'
+        required: false
+        default: 'full'
 
 jobs:
   predict:
