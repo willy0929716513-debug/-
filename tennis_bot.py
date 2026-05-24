@@ -1929,12 +1929,12 @@ def predict(p1_key: str, p2_key: str, surface: str,
 # ─────────────────────────────────────────────────────────────────────────────
 # ODDS FETCHING & PARSING
 # ─────────────────────────────────────────────────────────────────────────────
-ODDS_SPORTS = [
-    "tennis_atp", "tennis_wta",
-    "tennis_atp_french_open",      "tennis_wta_french_open",
-    "tennis_atp_wimbledon",        "tennis_wta_wimbledon",
-    "tennis_atp_us_open",          "tennis_wta_us_open",
-    "tennis_atp_australian_open",  "tennis_wta_australian_open",
+ODDS_SPORTS_BASE = ["tennis_atp", "tennis_wta"]
+ODDS_SPORTS_SLAMS = [
+    "tennis_atp_french_open", "tennis_wta_french_open",
+    "tennis_atp_wimbledon",   "tennis_wta_wimbledon",
+    "tennis_atp_us_open",     "tennis_wta_us_open",
+    "tennis_atp_australian_open", "tennis_wta_australian_open",
 ]
 
 
@@ -1951,15 +1951,33 @@ def safe_get(url: str, params: dict = None, timeout: int = 15) -> Optional[dict]
         return None
 
 
+def fetch_active_sports() -> set:
+    """Call /v4/sports/ once to find which tennis sports are currently active."""
+    data = safe_get(
+        "https://api.the-odds-api.com/v4/sports/",
+        params={"apiKey": ODDS_API_KEY},
+    )
+    if not data:
+        return set()
+    return {s["key"] for s in data if s.get("active") and "tennis" in s["key"]}
+
+
 def fetch_odds() -> List[dict]:
     if not ODDS_API_KEY:
         log.warning("ODDS_API_KEY not set")
         return []
+    active = fetch_active_sports()
+    if not active:
+        log.warning("fetch_active_sports returned empty — falling back to base sports")
+        active = set(ODDS_SPORTS_BASE)
+    # always include base; add slams only if active
+    sports = list(ODDS_SPORTS_BASE) + [s for s in ODDS_SPORTS_SLAMS if s in active]
+    log.info("fetch_odds: querying %d sport(s): %s", len(sports), sports)
     results = []
-    for sport in ODDS_SPORTS:
+    for sport in sports:
         data = safe_get(
             "https://api.the-odds-api.com/v4/sports/%s/odds/" % sport,
-            params={"apiKey": ODDS_API_KEY, "regions": "us,eu,uk,au",
+            params={"apiKey": ODDS_API_KEY, "regions": "eu",
                     "markets": "h2h", "oddsFormat": "decimal"},
         )
         if data:
