@@ -1286,6 +1286,94 @@ CHINESE_NAMES: Dict[str, str] = {
     "Elena-Gabriela Ruse": "魯塞", "Clara Burel": "比里爾",
     "Ekaterina Alexandrova": "亞歷山德羅娃", "Anna Kalinskaya": "卡林斯卡婭",
     "Veronika Kudermetova": "庫德梅托娃", "Anastasia Pavlyuchenkova": "帕夫柳琴科娃",
+    # ATP — additional
+    "Miomir Kecmanovic": "科查諾維奇", "Fabian Marozsan": "馬羅森",
+    "Vit Kopriva": "科普里瓦", "Brandon Nakashima": "中島",
+    "Cameron Norrie": "諾里", "Denis Shapovalov": "夏波瓦洛夫",
+    "Joao Fonseca": "方塞卡", "Sebastian Ofner": "奧夫納",
+    "Jaume Munar": "穆納爾", "Rinky Hijikata": "土方里奇",
+    "Tomas Machac": "馬哈奇", "Botic van de Zandschulp": "桑德舒爾普",
+    "Alexander Shevchenko": "謝甫琴科", "Alexandre Muller": "穆勒",
+    "Arthur Rinderknech": "林德克內希", "Hamad Medjedovic": "梅傑多維奇",
+    "Hugo Dellien": "德連", "Jacob Fearnley": "費恩利",
+    "Jaime Faria": "法里亞", "Jakub Mensik": "門西克",
+    "Jan-Lennard Struff": "施特魯夫", "Luca Van Assche": "范阿什",
+    "Mariano Navone": "納沃內", "Marin Cilic": "西里奇",
+    "Marton Fucsovics": "富科維奇", "Nuno Borges": "博爾赫斯",
+    "Pablo Carreno Busta": "卡雷尼奧-布斯塔", "Quentin Halys": "阿利斯",
+    "Reilly Opelka": "奧佩爾卡", "Terence Atmane": "阿特曼",
+    "Thanasi Kokkinakis": "科基納基斯", "Thomas Faurel": "福雷爾",
+    "Titouan Droguet": "德魯蓋", "Tomas Martin Etcheverry": "埃切維里",
+    "Valentin Vacherot": "瓦謝羅", "Valentin Royer": "羅耶爾",
+    "Wu Yibing": "吳易昺", "Yannick Hanfmann": "漢夫曼",
+    "Zachary Svajda": "斯瓦伊達", "Zizou Bergs": "貝爾格斯",
+    "Adam Walton": "沃爾頓", "Emilio Nava": "納瓦",
+    "Kyrian Jacquet": "雅凱", "Pablo Llamas Ruiz": "亞馬斯·魯伊斯",
+    "Rafael Jodar": "霍達爾", "Roman Safiullin": "薩菲烏林",
+    "Sebastian Baez": "拜斯", "Thiago Agustin Tirante": "蒂蘭特",
+    "Alejandro Tabilo": "塔比羅", "Aleksandar Vukic": "武基奇",
+    "Alexander Blockx": "布洛克斯", "Arthur Gea": "熱亞",
+    "Benjamin Bonzi": "邦齊", "Dino Prizmic": "普里茲米奇",
+    "Eliot Spizzirri": "斯皮扎里", "Ethan Quinn": "奎恩",
+    "Facundo Diaz Acosta": "迪亞斯·阿科斯塔", "Ignacio Buse": "布塞",
+    "Juan Manuel Cerundolo": "塞倫杜洛", "Karen Khachanov": "哈恰諾夫",
+    "Luca Van Assche": "范阿什", "Martin Landaluce": "蘭達盧斯",
+    "Raphael Collignon": "科利尼翁", "Roman Andres Burruchaga": "布魯查加",
+    "Toby Samuel": "薩繆爾", "Hugo Gaston": "加斯頓",
+    "Chak Lam Coleman Wong": "黃澤霖", "Luciano Darderi": "達德里",
+    "James Duckworth": "達克沃斯", "Moise Kouame": "庫阿梅",
+    "Valentin Vacherot": "瓦謝羅", "Adolfo Daniel Vallejo": "巴列霍",
+    "Michael Zheng": "鄭麒泰", "Daniel Merida Aguilar": "梅里達",
+    # WTA — additional
+    "Ajla Tomljanovic": "托姆利亞諾維奇", "Akasha Urhobo": "烏魯霍博",
+    "Alina Korneeva": "科爾尼娃", "Alycia Parks": "帕克斯",
+    "Amanda Anisimova": "阿尼西莫娃", "Anastasia Potapova": "波塔波娃",
+    "Anastasia Zakharova": "紮哈羅娃", "Anna Blinkova": "布林科娃",
+    "Anna Bondár": "邦達爾", "Antonia Ruzic": "魯日奇",
+    "Ashlyn Krueger": "克魯格", "Caty McNally": "麥克納利",
+    "Clara Tauson": "陶森", "Claire Liu": "劉清漪",
+    "Cristina Bucsa": "布克薩", "Dalma Galfi": "加爾菲",
+    "Danka Kovinic": "科維尼奇", "Daria Snigur": "斯尼古爾",
+    "Diane Parry": "帕里", "Donna Vekic": "維基奇",
+    "Ella Seidel": "塞德爾", "Elsa Jacquemot": "雅克莫",
+    "Emiliana Arango": "阿蘭戈", "Emma Raducanu": "拉杜卡努",
+    "Fiona Ferro": "費羅", "Francesca Jones": "瓊斯",
+    "Guo Hanyu": "郭涵宇", "Hailey Baptiste": "巴普蒂斯特",
+    "Hanne Vandewinkel": "范德溫克爾", "Iva Jović": "約維奇",
+    "Jaqueline Cristian": "克里斯蒂安", "Janice Tjen": "田佳妮",
+    "Jelena Ostapenko": "奧斯塔潘科", "Jessica Bouzas Maneiro": "布扎斯·馬內羅",
+    "Jil Teichmann": "泰希曼", "Julia Grabher": "格拉伯",
+    "Kaitlin Quevedo": "克維多", "Kamilla Rakhimova": "拉希莫娃",
+    "Karolina Muchova": "穆霍娃", "Katerina Siniakova": "西尼亞科娃",
+    "Katie Boulter": "博爾特", "Katie Volynets": "沃利涅茨",
+    "Kimberly Birrell": "比雷爾", "Ksenia Efremova": "葉夫列莫娃",
+    "Laura Siegemund": "西格蒙德", "Leolia Jeanjean": "讓讓",
+    "Leylah Fernandez": "費爾南德斯", "Lilli Tagger": "塔格爾",
+    "Linda Fruhvirtova": "弗魯赫維爾托娃", "Linda Noskova": "諾斯科娃",
+    "Lois Boisson": "博瓦松", "Lucia Bronzetti": "布隆澤蒂",
+    "Magda Linette": "利內特", "Magdalena Frech": "弗雷赫",
+    "Maja Chwalinska": "瓦林斯卡", "Marie Bouzkova": "布茲科娃",
+    "Marina Bassols Ribera": "巴索爾斯·里貝拉", "Maya Joint": "喬恩特",
+    "Mayar Sherif": "謝里夫", "Naomi Osaka": "大坂直美",
+    "Nikola Bartunkova": "巴爾圖恩科娃", "Oksana Selekhmeteva": "塞萊赫梅捷娃",
+    "Oleksandra Oliynykova": "奧利尼科娃", "Panna Udvardy": "烏德瓦爾迪",
+    "Peyton Stearns": "斯特恩斯", "Rebecca Sramkova": "斯拉姆科娃",
+    "Renata Zarazua": "薩拉蘇亞", "Sara Bejlek": "貝耶克",
+    "Sara Sorribes Tormo": "索里貝斯·托爾莫", "Shuai Zhang": "張帥",
+    "Simona Waltert": "瓦爾特", "Sinja Kraus": "克勞斯",
+    "Sloane Stephens": "斯蒂芬斯", "Sofia Kenin": "科寧",
+    "Solana Sierra": "西耶拉", "Sorana Cirstea": "奇爾斯蒂亞",
+    "Susan Bandecchi": "班德基", "Talia Gibson": "吉布森",
+    "Tamara Korpatsch": "科爾帕奇", "Tatjana Maria": "瑪麗亞",
+    "Taylor Townsend": "湯森德", "Tiantsoa Sarah Rajaonah": "拉喬阿納",
+    "Victoria Mboko": "姆博科", "Viktorija Golubic": "戈盧比奇",
+    "Veronika Erjavec": "葉爾亞維茨", "Xiyu Wang": "王欣宇",
+    "Xinyu Wang": "王欣瑜", "Yulia Putintseva": "普京採娃",
+    "Yuliia Starodubtseva": "斯塔羅杜勃采娃", "Zeynep Sonmez": "松梅茲",
+    "Alexandra Eala": "埃阿拉", "Alice Tubello": "圖貝洛",
+    "Elina Svitolina": "斯維托利娜", "Elena Pridankina": "普里丹金娜",
+    "Petra Marcinko": "馬爾欽科", "Eva Lys": "呂斯",
+    "McCartney Kessler": "凱斯勒",
 }
 
 
@@ -1841,12 +1929,12 @@ def predict(p1_key: str, p2_key: str, surface: str,
 # ─────────────────────────────────────────────────────────────────────────────
 # ODDS FETCHING & PARSING
 # ─────────────────────────────────────────────────────────────────────────────
-ODDS_SPORTS = [
-    "tennis_atp", "tennis_wta",
-    "tennis_atp_french_open",      "tennis_wta_french_open",
-    "tennis_atp_wimbledon",        "tennis_wta_wimbledon",
-    "tennis_atp_us_open",          "tennis_wta_us_open",
-    "tennis_atp_australian_open",  "tennis_wta_australian_open",
+ODDS_SPORTS_BASE = ["tennis_atp", "tennis_wta"]
+ODDS_SPORTS_SLAMS = [
+    "tennis_atp_french_open", "tennis_wta_french_open",
+    "tennis_atp_wimbledon",   "tennis_wta_wimbledon",
+    "tennis_atp_us_open",     "tennis_wta_us_open",
+    "tennis_atp_australian_open", "tennis_wta_australian_open",
 ]
 
 
@@ -1863,15 +1951,33 @@ def safe_get(url: str, params: dict = None, timeout: int = 15) -> Optional[dict]
         return None
 
 
+def fetch_active_sports() -> set:
+    """Call /v4/sports/ once to find which tennis sports are currently active."""
+    data = safe_get(
+        "https://api.the-odds-api.com/v4/sports/",
+        params={"apiKey": ODDS_API_KEY},
+    )
+    if not data:
+        return set()
+    return {s["key"] for s in data if s.get("active") and "tennis" in s["key"]}
+
+
 def fetch_odds() -> List[dict]:
     if not ODDS_API_KEY:
         log.warning("ODDS_API_KEY not set")
         return []
+    active = fetch_active_sports()
+    if not active:
+        log.warning("fetch_active_sports returned empty — falling back to base sports")
+        active = set(ODDS_SPORTS_BASE)
+    # always include base; add slams only if active
+    sports = list(ODDS_SPORTS_BASE) + [s for s in ODDS_SPORTS_SLAMS if s in active]
+    log.info("fetch_odds: querying %d sport(s): %s", len(sports), sports)
     results = []
-    for sport in ODDS_SPORTS:
+    for sport in sports:
         data = safe_get(
             "https://api.the-odds-api.com/v4/sports/%s/odds/" % sport,
-            params={"apiKey": ODDS_API_KEY, "regions": "us,eu,uk,au",
+            params={"apiKey": ODDS_API_KEY, "regions": "eu",
                     "markets": "h2h", "oddsFormat": "decimal"},
         )
         if data:
