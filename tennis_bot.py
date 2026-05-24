@@ -856,7 +856,10 @@ def surface_form_adj(p1_key: str, p2_key: str, surface: str) -> float:
     sf2 = prof2.get("surface_form", {}).get(surface)
     if sf1 is None or sf2 is None:
         return 0.0
-    return max(-0.04, min(0.04, (sf1 - sf2) * 0.12))
+    # Clay form is more predictive than other surfaces — higher coeff/cap
+    coeff = 0.18 if surface == "clay" else 0.12
+    cap   = 0.055 if surface == "clay" else 0.040
+    return max(-cap, min(cap, (sf1 - sf2) * coeff))
 
 
 def ace_serve_adj(p1_key: str, p2_key: str) -> float:
@@ -1404,15 +1407,29 @@ def norm_player(name: str) -> str:
 def get_surface_stats(key: str, surface: str) -> dict:
     players = {**ATP_STATS, **WTA_STATS}
     surf = surface if surface in ("hard", "clay", "grass") else "hard"
+    has_static = key in players
     base = dict(players.get(key, {}).get(surf,
            {"svpt_won": 0.610, "rtpt_won": 0.330, "elo": 1500}))
     live_elo = _LIVE_ELO.get(key, {}).get(surf)
     if live_elo:
         base["elo"] = live_elo
-    rec = _RECENT_STATS.get(key, {})
-    if rec.get("svpt_won"):
-        base["svpt_won"] = base["svpt_won"] * 0.5 + rec["svpt_won"] * 0.5
-        base["rtpt_won"] = base["rtpt_won"] * 0.5 + rec.get("rtpt_won", base["rtpt_won"]) * 0.5
+    prof = _SACKMANN_PROFILES.get(key, {})
+    n = prof.get("n_matches", 0)
+    # Prefer surface-specific Sackmann stats when available (≥3 matches on that surface)
+    surf_sv = prof.get("surf_svpt_won", {}).get(surf)
+    surf_rt = prof.get("surf_rtpt_won", {}).get(surf)
+    if surf_sv is not None:
+        # Surface-specific data: high trust, scale with sample size
+        w_sack = min(0.85, 0.55 + n * 0.015) if not has_static else min(0.75, 0.45 + n * 0.012)
+        base["svpt_won"] = base["svpt_won"] * (1 - w_sack) + surf_sv * w_sack
+        base["rtpt_won"] = base["rtpt_won"] * (1 - w_sack) + (surf_rt or base["rtpt_won"]) * w_sack
+    else:
+        rec = _RECENT_STATS.get(key, {})
+        if rec.get("svpt_won"):
+            # All-surface average: lower trust than surface-specific
+            w_rec = min(0.70, 0.40 + n * 0.010) if not has_static else min(0.55, 0.30 + n * 0.008)
+            base["svpt_won"] = base["svpt_won"] * (1 - w_rec) + rec["svpt_won"] * w_rec
+            base["rtpt_won"] = base["rtpt_won"] * (1 - w_rec) + rec.get("rtpt_won", base["rtpt_won"]) * w_rec
     return base
 
 
@@ -1441,6 +1458,27 @@ def infer_tour_level(sport_key: str, tournament: str = "") -> str:
                               "washington", "hamburg"]):
         return "wta500" if is_wta else "atp500"
     return "wta250" if is_wta else "atp250"
+
+
+def data_quality_score(key: str) -> float:
+    """0.2=generic fallback only, 0.6=Sackmann only, 1.0=full static+Sackmann"""
+    static = {**ATP_STATS, **WTA_STATS}
+    has_static = key in static
+    prof = _SACKMANN_PROFILES.get(key, {})
+    n = prof.get("n_matches", 0)
+    if has_static and n >= 10:
+        return 1.0
+    if has_static and n >= 5:
+        return 0.85
+    if has_static:
+        return 0.70
+    if n >= 10:
+        return 0.65
+    if n >= 5:
+        return 0.50
+    if n > 0:
+        return 0.35
+    return 0.20
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1547,6 +1585,9 @@ def build_player_profile(all_matches: List[dict], full_name: str,
     tb_won, tb_total        = 0, 0
     bp_saved, bp_faced      = 0, 0
     dec_won, dec_total      = 0, 0
+    # surface-specific serve/return tracking
+    surf_sv: Dict[str, List[float]] = {"hard": [], "clay": [], "grass": []}
+    surf_rt: Dict[str, List[float]] = {"hard": [], "clay": [], "grass": []}
     now_utc = datetime.datetime.utcnow()
     cutoff14 = now_utc - datetime.timedelta(days=14)
     matches_14d = 0
@@ -1649,6 +1690,13 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         surf_raw = (row.get("surface") or "hard").lower()
         surf_key = surf_raw if surf_raw in surface_res else "hard"
         surface_res[surf_key].append(1 if is_winner else 0)
+        # surface-specific serve/return
+        sv_val = _calc_svpt_won(row, prefix)
+        rt_val = _calc_svpt_won(row, opp_prefix)
+        if sv_val is not None:
+            surf_sv[surf_key].append(sv_val)
+        if rt_val is not None:
+            surf_rt[surf_key].append(1.0 - rt_val)
 
     weights   = [1.0 / (i + 1.0) for i in range(len(results))]
     total_w   = sum(weights)
@@ -1704,6 +1752,8 @@ def build_player_profile(all_matches: List[dict], full_name: str,
         "matches_last_14d":   matches_14d,
         "last_surface":       last_surface,
         "last_surf_days":     last_surf_days,
+        "surf_svpt_won": {s: round(sum(v)/len(v), 4) for s, v in surf_sv.items() if len(v) >= 3},
+        "surf_rtpt_won": {s: round(sum(v)/len(v), 4) for s, v in surf_rt.items() if len(v) >= 3},
     }
 
 
@@ -2102,6 +2152,13 @@ def generate_picks(matches: List[dict],
         dv_p1    = odds_info["dv_p_home"]
         dv_p2    = odds_info["dv_p_away"]
 
+        # Data quality: shrink model toward market when player data is sparse
+        dq = min(data_quality_score(p1_key), data_quality_score(p2_key))
+        if dq < 0.85:
+            shrink = (0.85 - dq) * 0.35  # up to ~23% shrink at dq=0.2
+            blend_p1 = blend_p1 * (1 - shrink) + dv_p1 * shrink
+            blend_p2 = 1.0 - blend_p1
+
         # Odds movement signal (smart-money boost)
         ok = "%s|%s" % (odds_info["home"].lower(), odds_info["away"].lower())
         steam_adj, steam_label = odds_move_signal(ok, odds_info, odds_prev)
@@ -2138,6 +2195,11 @@ def generate_picks(matches: List[dict],
         has_inj = abs(pred.get("inj_adj", 0.0)) >= 0.01
         if has_inj:
             eff_min_edge = max(eff_min_edge, 0.18)
+        # 數據品質低時提高 edge 門檻
+        if dq < 0.65:
+            eff_min_edge = max(eff_min_edge, 0.22)
+        elif dq < 0.80:
+            eff_min_edge = max(eff_min_edge, 0.15)
         # 市場機率底線：市場認為我們推薦的選手勝率 < 30% → 模型可能誤判，跳過
         if dv_p < 0.30:
             continue
