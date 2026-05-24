@@ -577,8 +577,8 @@ SURFACE_TRANSITION_PENALTY: Dict[Tuple[str, str], float] = {
 }
 SURFACE_TRANSITION_WINDOW = 21  # days
 
-PUBLIC_BIAS_THRESHOLD = 0.08
-PUBLIC_BIAS_FADE      = 0.025
+PUBLIC_BIAS_THRESHOLD = 0.10   # raised: need stronger disagreement before fading
+PUBLIC_BIAS_FADE      = 0.015  # reduced: smaller nudge to avoid overriding market
 
 INJURY_SERVE_DROP_THRESH = 0.05
 INJURY_STREAK_PENALTY    = -0.015
@@ -2129,9 +2129,17 @@ def generate_picks(matches: List[dict],
         eff_min_edge = MIN_EDGE_ML + max(0.0, (n_books - 6) * 0.003)
         # 高賠率安全閥：推薦的賠率 > 2.20 時要求更高 edge，避免模型噪音放大
         if best_price > 2.20:
-            eff_min_edge = max(eff_min_edge, 0.15)
-        # 市場機率底線：市場認為我們推薦的選手勝率 < 28% → 模型可能誤判，跳過
-        if dv_p < 0.28:
+            eff_min_edge = max(eff_min_edge, 0.20)
+        # 市場強烈看空推薦方：市場給 < 42% 且對手市場 > 55%，需更高 edge 才信任模型
+        opp_dv = dv_p1 if bet_name == odds_info["away"] else dv_p2
+        if dv_p < 0.42 and opp_dv > 0.55:
+            eff_min_edge = max(eff_min_edge, 0.25)
+        # 有傷病訊號時提高 edge 門檻（傷病資訊不確定性高）
+        has_inj = abs(pred.get("inj_adj", 0.0)) >= 0.01
+        if has_inj:
+            eff_min_edge = max(eff_min_edge, 0.18)
+        # 市場機率底線：市場認為我們推薦的選手勝率 < 30% → 模型可能誤判，跳過
+        if dv_p < 0.30:
             continue
 
         if edge < eff_min_edge:
