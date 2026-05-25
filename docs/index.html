@@ -499,7 +499,8 @@ function confScore(p){
 function confColor(score){ return score >= 80 ? 'g' : score >= 65 ? 'o' : ''; }
 function fmtTW(iso){
   if(!iso) return '';
-  return new Date(iso).toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit'});
+  const d = new Date(new Date(iso).getTime() + 8*3600*1000);
+  return String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
 }
 function fmtLoad(n){
   if(n == null) return '—';
@@ -605,7 +606,7 @@ function renderPick(p){
   const fs1=p.fs_pct1,fs2=p.fs_pct2,bp1=p.bp_conv1,bp2=p.bp_conv2,ld1=p.load1,ld2=p.load2;
   const [fc1,fc2]=cmp(fs1,fs2,true),[bc1,bc2]=cmp(bp1,bp2,true);
   const statsRows=[
-    (fs1!=null||fs2!=null)?`<div class="ps-row"><span class="ps-lbl">一發得分率</span><span class="ps-val ${fc1}">${fs1!=null?fs1+'%':'—'}</span><span class="ps-val ${fc2}">${fs2!=null?fs2+'%':'—'}</span></div>`:''  ,
+    (fs1!=null||fs2!=null)?`<div class="ps-row"><span class="ps-lbl">一發得分率</span><span class="ps-val ${fc1}">${fs1!=null?fs1+'%':'—'}</span><span class="ps-val ${fc2}">${fs2!=null?fs2+'%':'—'}</span></div>`:'',
     (bp1!=null||bp2!=null)?`<div class="ps-row"><span class="ps-lbl">破發轉換率</span><span class="ps-val ${bc1}">${bp1!=null?bp1+'%':'—'}</span><span class="ps-val ${bc2}">${bp2!=null?bp2+'%':'—'}</span></div>`:'',
     (ld1!=null||ld2!=null)?`<div class="ps-row"><span class="ps-lbl">近期負荷</span><span class="ps-val">${fmtLoad(ld1)}</span><span class="ps-val">${fmtLoad(ld2)}</span></div>`:'',
   ].filter(Boolean).join('');
