@@ -3,12 +3,9 @@ name: Tennis Bot
 on:
   workflow_dispatch:
   schedule:
-    # 各區開賽前 90 分鐘觸發（含 GitHub Actions 最長 ~60 分延遲仍安全）
-    - cron: '30 6 * * *'   # TW 14:30 — 法網/溫網早場（開賽 08:00 UTC）
-    - cron: '30 8 * * *'   # TW 16:30 — 法網/溫網午場（開賽 10:00 UTC）
-    - cron: '30 13 * * *'  # TW 21:30 — 美網早場（開賽 15:00 UTC）
-    - cron: '30 17 * * *'  # TW 01:30 — 美網午場（開賽 19:00 UTC）
-    - cron: '30 21 * * *'  # TW 05:30 — 澳網早場（開賽 23:00 UTC）
+    # 法網（巴黎 CEST = UTC+2）
+    - cron: '30 6 * * *'   # TW 14:30 — 早場（開賽 08:00 UTC）
+    - cron: '30 8 * * *'   # TW 16:30 — 午場（開賽 10:00 UTC）
 
 jobs:
   predict:
