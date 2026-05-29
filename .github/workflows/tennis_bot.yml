@@ -2,10 +2,6 @@ name: Tennis Bot
 
 on:
   workflow_dispatch:
-  schedule:
-    # 法網（巴黎 CEST = UTC+2）
-    - cron: '30 6 * * *'   # TW 14:30 — 早場（開賽 08:00 UTC）
-    - cron: '30 8 * * *'   # TW 16:30 — 午場（開賽 10:00 UTC）
 
 jobs:
   predict:
