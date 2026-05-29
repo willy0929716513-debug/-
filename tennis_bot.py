@@ -308,6 +308,20 @@ ATP_STATS: Dict[str, dict] = {
         "clay":  {"svpt_won": 0.635, "rtpt_won": 0.342, "elo": 1965},
         "grass": {"svpt_won": 0.625, "rtpt_won": 0.325, "elo": 1885},
     },
+    "carreno_busta": {
+        "full_name": "Pablo Carreno Busta", "hand": "R", "rank": 35, "country": "ESP",
+        "birth_year": 1991, "backhand": "2h",
+        "hard":  {"svpt_won": 0.622, "rtpt_won": 0.358, "elo": 1980},
+        "clay":  {"svpt_won": 0.632, "rtpt_won": 0.382, "elo": 2080},
+        "grass": {"svpt_won": 0.618, "rtpt_won": 0.348, "elo": 1940},
+    },
+    "tirante": {
+        "full_name": "Thiago Agustin Tirante", "hand": "R", "rank": 85, "country": "ARG",
+        "birth_year": 2002, "backhand": "2h",
+        "hard":  {"svpt_won": 0.608, "rtpt_won": 0.338, "elo": 1830},
+        "clay":  {"svpt_won": 0.618, "rtpt_won": 0.358, "elo": 1900},
+        "grass": {"svpt_won": 0.608, "rtpt_won": 0.328, "elo": 1790},
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1224,6 +1238,8 @@ _ALIASES: Dict[str, str] = {
     "ugo humbert":           "humbert",
     "nicolas jarry":         "jarry",
     "flavio cobolli":        "cobolli",
+    "pablo carreno busta":   "carreno_busta",
+    "thiago agustin tirante":"tirante",
     "iga swiatek":           "swiatek",
     "aryna sabalenka":       "sabalenka",
     "coco gauff":            "gauff",
@@ -2159,6 +2175,18 @@ def generate_picks(matches: List[dict],
             blend_p1 = blend_p1 * (1 - shrink) + dv_p1 * shrink
             blend_p2 = 1.0 - blend_p1
 
+        # 大冷門市場錨：推薦方市場機率 < 40% 且最佳賠率 > 3.0 時，額外向市場靠攏
+        # 防止 Markov Chain 過度信任近期數據而無視市場共識
+        _tmp_best = max(odds_info.get("best_home", 1.5), odds_info.get("best_away", 1.5))
+        if dv_p1 < 0.40 and _tmp_best > 3.0:
+            ug_shrink = min(0.30, (0.40 - dv_p1) * 1.5)
+            blend_p1 = blend_p1 * (1 - ug_shrink) + dv_p1 * ug_shrink
+            blend_p2 = 1.0 - blend_p1
+        elif dv_p2 < 0.40 and _tmp_best > 3.0:
+            ug_shrink = min(0.30, (0.40 - dv_p2) * 1.5)
+            blend_p2 = blend_p2 * (1 - ug_shrink) + dv_p2 * ug_shrink
+            blend_p1 = 1.0 - blend_p2
+
         # Odds movement signal (smart-money boost)
         ok = "%s|%s" % (odds_info["home"].lower(), odds_info["away"].lower())
         steam_adj, steam_label = odds_move_signal(ok, odds_info, odds_prev)
@@ -2200,8 +2228,8 @@ def generate_picks(matches: List[dict],
             eff_min_edge = max(eff_min_edge, 0.22)
         elif dq < 0.80:
             eff_min_edge = max(eff_min_edge, 0.15)
-        # 市場機率底線：市場認為我們推薦的選手勝率 < 30% → 模型可能誤判，跳過
-        if dv_p < 0.30:
+        # 市場機率底線：市場認為我們推薦的選手勝率 < 33% → 模型可能誤判，跳過
+        if dv_p < 0.33:
             continue
 
         if edge < eff_min_edge:
